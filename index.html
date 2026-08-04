@@ -1,0 +1,1780 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="app-build" content="20260804-0800">
+<meta name="theme-color" content="#0B1F17">
+<title>RemindMe — நினைவூட்டல்</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B1F17;
+  --card:#132D22;
+  --card2:#1B3A2C;
+  --line:#234A38;
+  --green:#22C55E;
+  --green-dim:#16A34A;
+  --amber:#FFC107;
+  --red:#FF4D4D;
+  --white:#FFFFFF;
+  --muted:#A8C5B5;
+  --radius:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--white);
+  font-family:'Poppins','Noto Sans Tamil',system-ui,sans-serif;
+  font-size:15px;line-height:1.55;overflow-x:hidden;width:100%;}
+body{padding-bottom:96px;}
+button,input,select,textarea{font-family:inherit;font-size:15px;}
+button{cursor:pointer;}
+a{color:var(--green);}
+
+/* ---------- layout ---------- */
+.wrap{max-width:560px;margin:0 auto;padding:0 14px;}
+.topbar{position:sticky;top:0;z-index:40;background:var(--bg);
+  padding:14px 14px 10px;border-bottom:1px solid var(--line);}
+.topbar-in{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:10px;}
+.brand{font-size:19px;font-weight:700;letter-spacing:.2px;flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.topbar-in{gap:8px;}
+@media (max-width:360px){
+  .brand{font-size:17px;}
+  .icon-btn{width:34px;height:34px;font-size:15px;}
+  .topbar-in{gap:6px;}
+}
+.brand span{color:var(--green);}
+.icon-btn{background:var(--card);border:1px solid var(--line);color:var(--white);
+  width:38px;height:38px;border-radius:11px;display:flex;align-items:center;
+  justify-content:center;font-size:17px;flex:0 0 auto;}
+
+/* ---------- ticker ---------- */
+.ticker{background:var(--card2);border-bottom:1px solid var(--line);
+  overflow:hidden;white-space:nowrap;padding:7px 0;font-size:13px;color:var(--amber);display:none;}
+.ticker.on{display:block;}
+.ticker span{display:inline-block;padding-left:100%;animation:tick 18s linear infinite;}
+@keyframes tick{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+
+/* ---------- cards ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px;margin-bottom:12px;}
+.sec-title{font-size:13px;font-weight:600;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.6px;margin:18px 0 10px;}
+
+/* ---------- stat strip ---------- */
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-bottom:14px;}
+.stat{background:#000;border:1px solid var(--line);border-radius:var(--radius);
+  padding:12px 8px;text-align:center;min-width:0;}
+.stat b{display:block;font-size:17px;font-weight:700;line-height:1.25;
+  overflow:hidden;text-overflow:ellipsis;}
+.stat small{display:block;font-size:11px;color:var(--white);margin-top:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.s-green b{color:var(--green);} .s-amber b{color:var(--amber);} .s-red b{color:var(--red);}
+
+/* ---------- reminder row ---------- */
+.row{display:flex;align-items:center;gap:11px;background:var(--card);
+  border:1px solid var(--line);border-left:4px solid var(--line);
+  border-radius:var(--radius);padding:12px;margin-bottom:9px;}
+.row.due-soon{border-left-color:var(--amber);}
+.row.overdue{border-left-color:var(--red);}
+.row.ok{border-left-color:var(--green);}
+.row-emoji{width:40px;height:40px;border-radius:11px;background:var(--card2);
+  display:flex;align-items:center;justify-content:center;font-size:20px;flex:0 0 auto;}
+.row-mid{flex:1;min-width:0;}
+.row-mid b{display:block;font-size:15px;font-weight:600;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.row-mid small{display:block;font-size:12.5px;color:var(--muted);margin-top:1px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.row-right{text-align:right;flex:0 0 auto;max-width:40%;}
+.row-right b{display:block;font-size:14.5px;font-weight:600;}
+.row-right small{display:block;font-size:11.5px;margin-top:1px;}
+.t-red{color:var(--red)!important;} .t-amber{color:var(--amber)!important;}
+.t-green{color:var(--green)!important;} .t-muted{color:var(--muted)!important;}
+
+/* ---------- buttons ---------- */
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:12px;
+  font-size:15.5px;font-weight:600;margin-bottom:10px;text-align:center;}
+.btn-primary{background:var(--green);color:#04150C;}
+.btn-amber{background:var(--amber);color:#221A00;}
+.btn-ghost{background:transparent;color:var(--white);border:1px solid var(--line);}
+.btn-danger{background:transparent;color:var(--red);border:1px solid var(--red);}
+.btn-sm{padding:9px 13px;font-size:13.5px;width:auto;display:inline-block;margin:0;}
+.btn:disabled{opacity:.5;}
+
+/* ---------- form ---------- */
+label.fl{display:block;font-size:12.5px;color:var(--muted);margin:14px 0 6px;font-weight:500;}
+label.fl:first-child{margin-top:0;}
+.in{width:100%;padding:13px;background:var(--card2);border:1px solid var(--line);
+  border-radius:11px;color:var(--white);outline:none;}
+.in:focus{border-color:var(--green);}
+textarea.in{min-height:74px;resize:vertical;}
+select.in{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%23A8C5B5'><path d='M7 10L2 4h10z'/></svg>");
+  background-repeat:no-repeat;background-position:right 13px center;padding-right:36px;}
+.hint{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.5;}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{padding:9px 13px;border-radius:20px;background:var(--card2);
+  border:1px solid var(--line);font-size:13px;color:var(--muted);}
+.chip.on{background:var(--green);border-color:var(--green);color:#04150C;font-weight:600;}
+.chip.on-amber{background:var(--amber);border-color:var(--amber);color:#221A00;font-weight:600;}
+
+/* category grid */
+.catgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+.catcell{background:var(--card2);border:1px solid var(--line);border-radius:12px;
+  padding:12px 6px;text-align:center;min-width:0;}
+.catcell.on{border-color:var(--green);background:#123626;}
+.catcell i{display:block;font-size:23px;font-style:normal;}
+.catcell span{display:block;font-size:11.5px;margin-top:5px;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.catcell.on span{color:var(--white);}
+
+/* ---------- tabs ---------- */
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex:0 0 auto;padding:9px 15px;border-radius:20px;background:var(--card);
+  border:1px solid var(--line);font-size:13.5px;color:var(--muted);white-space:nowrap;}
+.tab.on{background:var(--green);border-color:var(--green);color:#04150C;font-weight:600;}
+
+/* ---------- modal ---------- */
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;
+  display:none;align-items:flex-end;justify-content:center;}
+.mask.on{display:flex;}
+.sheet{background:var(--card);width:100%;max-width:560px;max-height:92vh;
+  overflow-y:auto;border-radius:20px 20px 0 0;padding:18px 16px 30px;
+  border-top:1px solid var(--line);animation:up .2s ease;}
+.sheet.full{max-height:100vh;height:100vh;border-radius:0;}
+@keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+.sheet-title{font-size:17px;font-weight:700;margin-bottom:14px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.x{background:var(--card2);border:1px solid var(--line);color:var(--white);
+  width:32px;height:32px;border-radius:9px;font-size:15px;flex:0 0 auto;}
+
+/* ---------- calendar ---------- */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cal-h{text-align:center;font-size:11px;color:var(--muted);padding:5px 0;}
+.cal-d{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;border-radius:9px;font-size:13px;position:relative;}
+.cal-d.has{background:var(--card2);}
+.cal-d.today{outline:2px solid var(--green);}
+.cal-dot{width:5px;height:5px;border-radius:50%;margin-top:2px;}
+
+/* ---------- bottom nav ---------- */
+.nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--card);
+  border-top:1px solid var(--line);display:flex;
+  padding:7px 0 calc(7px + env(safe-area-inset-bottom));}
+.nav-in{max-width:560px;margin:0 auto;display:flex;width:100%;}
+.nav button{flex:1;background:none;border:none;color:var(--muted);
+  font-size:10.5px;padding:5px 2px;display:flex;flex-direction:column;
+  align-items:center;gap:3px;min-width:0;}
+.nav button i{font-size:19px;font-style:normal;}
+.nav button.on{color:var(--green);}
+
+/* ---------- misc ---------- */
+.empty{text-align:center;padding:44px 18px;color:var(--muted);}
+.empty i{font-size:40px;font-style:normal;display:block;margin-bottom:10px;opacity:.55;}
+.toast{position:fixed;left:50%;bottom:104px;transform:translateX(-50%);
+  background:var(--card2);border:1px solid var(--green);color:var(--white);
+  padding:12px 17px;border-radius:12px;font-size:13.5px;z-index:200;
+  max-width:88%;text-align:center;display:none;}
+.toast.on{display:block;}
+.pill{display:inline-block;padding:3px 9px;border-radius:9px;font-size:11px;
+  font-weight:600;background:var(--card2);color:var(--muted);}
+.pill.g{background:#0E3B22;color:var(--green);}
+.pill.a{background:#3B3000;color:var(--amber);}
+.pill.r{background:#3B1414;color:var(--red);}
+.divider{height:1px;background:var(--line);margin:14px 0;}
+
+/* first-run language chooser */
+#langScreen{position:fixed;inset:0;background:var(--bg);z-index:420;
+  display:none;flex-direction:column;align-items:center;justify-content:center;padding:26px;}
+#langScreen.on{display:flex;}
+#langScreen .lbtn{width:100%;max-width:320px;padding:17px;border-radius:14px;
+  background:var(--card);border:1px solid var(--line);color:var(--white);
+  font-size:17px;font-weight:600;margin-bottom:12px;}
+#langScreen .lbtn small{display:block;font-size:12px;color:var(--muted);
+  font-weight:400;margin-top:2px;}
+
+/* PIN */
+#pinScreen{position:fixed;inset:0;background:var(--bg);z-index:300;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px;}
+.pin-dots{display:flex;gap:13px;margin:22px 0 8px;}
+.pin-dot{width:15px;height:15px;border-radius:50%;border:2px solid var(--line);}
+.pin-dot.f{background:var(--green);border-color:var(--green);}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;
+  margin-top:26px;width:100%;max-width:280px;}
+.key{aspect-ratio:1.35;background:var(--card);border:1px solid var(--line);
+  border-radius:14px;color:var(--white);font-size:22px;font-weight:600;
+  touch-action:manipulation;display:flex;align-items:center;justify-content:center;}
+#pinMsg{min-height:22px;font-size:13.5px;color:var(--red);margin-top:6px;}
+
+/* fullscreen alarm */
+#alarm{position:fixed;inset:0;background:#2A0A0A;z-index:400;display:none;
+  flex-direction:column;align-items:center;justify-content:center;padding:26px;text-align:center;}
+#alarm.on{display:flex;}
+#alarm .ai{font-size:62px;margin-bottom:14px;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.13)}}
+#alarm h2{font-size:23px;margin:0 0 8px;}
+#alarm p{color:#FFC9C9;margin:0 0 22px;font-size:14.5px;}
+#alarmList{width:100%;max-width:420px;margin-bottom:22px;text-align:left;}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+
+<!-- FIRST RUN : LANGUAGE -->
+<div id="langScreen">
+  <div style="font-size:38px;">🔔</div>
+  <div style="font-size:21px;font-weight:700;margin-top:8px;">RemindMe</div>
+  <div style="font-size:14px;color:var(--muted);margin:4px 0 26px;text-align:center;">
+    மொழி தேர்ந்தெடுங்க<br>Choose your language</div>
+  <button class="lbtn" data-lg0="ta">தமிழ்</button>
+  <button class="lbtn" data-lg0="en">English</button>
+  <button class="lbtn" data-lg0="both">தமிழ் + English<small>ரெண்டும் தெரியும் · both shown</small></button>
+  <div style="font-size:11.5px;color:var(--muted);margin-top:14px;text-align:center;">
+    அமைப்புகள்-ல எப்பவும் மாத்தலாம் · You can change this later in Settings</div>
+</div>
+
+<!-- PIN LOCK -->
+<div id="pinScreen">
+  <div style="font-size:38px;">🔔</div>
+  <div style="font-size:21px;font-weight:700;margin-top:8px;">RemindMe</div>
+  <div style="font-size:13px;color:var(--muted);margin-top:3px;" id="pinCo">நினைவூட்டல்</div>
+  <div class="pin-dots">
+    <div class="pin-dot"></div><div class="pin-dot"></div>
+    <div class="pin-dot"></div><div class="pin-dot"></div>
+  </div>
+  <div id="pinMsg"></div>
+  <div class="keypad" id="keypad"></div>
+</div>
+
+<!-- FULLSCREEN ALARM -->
+<div id="alarm">
+  <div class="ai">⏰</div>
+  <h2 id="alarmHead">இன்று கட்ட வேண்டியது</h2>
+  <p id="alarmSub"></p>
+  <div id="alarmList"></div>
+  <button class="btn btn-primary" style="max-width:300px;" id="alarmOk">சரி, பார்த்துக்கிறேன்</button>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand">Remind<span>Me</span></div>
+    <button class="icon-btn" id="btnLang">🌐</button>
+    <button class="icon-btn" id="btnSearch">🔍</button>
+    <button class="icon-btn" id="btnSettings">⚙️</button>
+  </div>
+</div>
+<div class="ticker" id="ticker"><span id="tickerTxt"></span></div>
+
+<div class="wrap" id="app"></div>
+
+<!-- BOTTOM NAV -->
+<div class="nav">
+  <div class="nav-in">
+    <button data-tab="home" class="on"><i>🏠</i>முகப்பு</button>
+    <button data-tab="list"><i>📋</i>பட்டியல்</button>
+    <button data-tab="add"><i>➕</i>சேர்</button>
+    <button data-tab="cal"><i>📅</i>காலண்டர்</button>
+    <button data-tab="report"><i>📊</i>ரிப்போர்ட்</button>
+  </div>
+</div>
+
+<div class="mask" id="mask"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<audio id="alarmAudio" loop preload="auto"></audio>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script>
+/* ============================================================
+   RemindMe — master template
+   Config: இந்த block-ஐ மட்டும் customer-க்கு ஏற்ப மாற்றவும்
+   ============================================================ */
+const CONFIG = {
+  appName      : 'RemindMe',
+  defaultCompany: 'RemindMe',
+  defaultPin   : '1973',
+  currency     : '₹',
+  freeLimit    : 5,            // appConfig-ல மாற்றலாம்
+  firebase: {
+    apiKey: "AIzaSyCmvJBOFP3snt3FC1b5Omdr0yiMfZ8B14Y",
+    authDomain: "remindme-demo.firebaseapp.com",
+    databaseURL: "https://remindme-demo-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "remindme-demo",
+    storageBucket: "remindme-demo.firebasestorage.app",
+    messagingSenderId: "740502927411",
+    appId: "1:740502927411:web:fd9951a7ef7d3daf0dcb46"
+  }
+};
+
+/* master override PIN 1973 — எல்லா instance-லும் வேலை செய்யும் */
+const MASTER_PIN_HASH = '9baed8fceea6e36d36670d72429d909547165efc038c293a14a41ef2edf83141';
+
+/* multi-tenant: ?id=NAME இருந்தால் demo instance, இல்லைனா single tenant */
+const _qid = (new URLSearchParams(location.search).get('id') || '')
+              .replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase().slice(0, 40);
+const DEMO_ID = _qid || '';
+const ROOT = DEMO_ID ? ('demoInstances/' + DEMO_ID) : 'remindme';
+
+firebase.initializeApp(CONFIG.firebase);
+const db = firebase.database();
+const R  = p => db.ref(ROOT + (p ? '/' + p : ''));
+
+/* ---------------- state ---------------- */
+const STATE = {
+  ready:false, tab:'home', listTab:'upcoming',
+  config:{}, categories:{}, reminders:{}, payments:{},
+  calMonth:new Date().getFullYear()*12 + new Date().getMonth(),
+  search:'', editId:null, pinHash:null, unlocked:false
+};
+
+/* ---------------- helpers ---------------- */
+const $  = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const DAY = 86400000;
+function todayStart(){ const d=new Date(); d.setHours(0,0,0,0); return d.getTime(); }
+function ymd(ts){ const d=new Date(ts); return d.getFullYear()+'-'+
+  String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function parseYmd(s){ if(!s) return 0; const p=String(s).split('-');
+  return new Date(+p[0], (+p[1])-1, +p[2], 0,0,0,0).getTime(); }
+function fmtDate(ts){ if(!ts) return '—'; const d=new Date(ts);
+  return d.getDate()+' '+MONS()[d.getMonth()]+' '+d.getFullYear(); }
+function fmtShort(ts){ if(!ts) return '—'; const d=new Date(ts);
+  return d.getDate()+' '+MONS()[d.getMonth()]; }
+function money(n){ if(n==null||n==='') return ''; 
+  return CONFIG.currency + Number(n).toLocaleString('en-IN',{maximumFractionDigits:2}); }
+function daysLeft(ts){ return Math.round((ts - todayStart())/DAY); }
+function daysText(ts){
+  const d = daysLeft(ts);
+  if(d === 0)  return 'இன்று';
+  if(d === 1)  return 'நாளை';
+  if(d === -1) return 'நேற்று தவறியது';
+  if(d < 0)    return Math.abs(d)+' நாள் தாண்டியது';
+  return d+' நாள் பாக்கி';
+}
+async function sha256(txt){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function toast(msg){
+  const t = $('toast'); t.textContent = tr(msg); t.classList.add('on');
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('on'), 2600);
+}
+function openSheet(html, full){
+  $('sheet').className = 'sheet' + (full ? ' full' : '');
+  $('sheet').innerHTML = html;
+  translateTree($('sheet'));
+  $('mask').classList.add('on');
+  $('sheet').scrollTop = 0;
+  const x = $('sheet').querySelector('.x');
+  if(x) x.onclick = closeSheet;
+}
+function closeSheet(){ $('mask').classList.remove('on'); $('sheet').innerHTML=''; }
+$('mask') && ($('mask').addEventListener('click', e=>{ if(e.target.id==='mask') closeSheet(); }));
+
+
+/* ============================================================
+   LANGUAGE  —  தமிழ் / English / இரண்டும்
+   ============================================================ */
+let LANG = 'both';                       // config/lang-ல இருந்து வரும்
+const MON_TA = ['ஜன','பிப்','மார்','ஏப்','மே','ஜூன்','ஜூலை','ஆக','செப்','அக்','நவ','டிச'];
+const MON_EN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const WD_TA  = ['ஞா','தி','செ','பு','வி','வெ','ச'];
+const WD_EN  = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+function MONS(){ return LANG === 'en' ? MON_EN : MON_TA; }
+function WDS(){  return LANG === 'en' ? WD_EN  : WD_TA;  }
+
+const DICT = {
+ /* nav + shell */
+ 'முகப்பு':'Home','பட்டியல்':'List','சேர்':'Add','காலண்டர்':'Calendar','ரிப்போர்ட்':'Reports',
+ 'நினைவூட்டல்':'Reminders',
+ /* pin */
+ 'PIN தப்பு':'Wrong PIN','ஏற்றுகிறது, கொஞ்சம் பொறுங்க...':'Loading, please wait...',
+ /* stats */
+ 'இந்த மாதம்':'This month','தாண்டியது':'Overdue','கட்டியாச்சு':'Paid',
+ 'மொத்த பாக்கி':'Total due','லேட் ஆனது':'Paid late','பயன்படுத்தியது':'Used',
+ /* sections */
+ 'தாண்டிப்போச்சு':'Overdue','அடுத்து வர்றது':'Coming up','வகை வாரியா':'By category',
+ 'பழைய கட்டணங்கள்':'Payment history',' மாசம் (':' (',
+ /* list tabs */
+ 'வரப்போறது':'Upcoming','திரும்ப வரும்':'Repeating','கட்டினது':'Paid','எல்லாம்':'All',
+ /* day text */
+ 'இன்று':'Today','நாளை':'Tomorrow','நேற்று தவறியது':'Missed yesterday',
+ ' நாள் தாண்டியது':' days overdue',' நாள் பாக்கி':' days left',' நாள் முன்':' days before',
+ 'அன்னைக்கு':'On the day',' நாள் லேட்':' days late','சரியான நேரம்':'On time',
+ 'கட்ட வேண்டியது':'Due',' · கட்டினது ':' · paid ',
+ /* repeats */
+ 'திரும்ப வராது':'Does not repeat','மாதம் ஒரு முறை':'Every month',
+ '3 மாசத்துக்கு ஒரு முறை':'Every 3 months','6 மாசத்துக்கு ஒரு முறை':'Every 6 months',
+ 'வருஷம் ஒரு முறை':'Every year','2 வருஷத்துக்கு ஒரு முறை':'Every 2 years',
+ '5 வருஷத்துக்கு ஒரு முறை':'Every 5 years',
+ /* form */
+ 'என்ன? *':'What is it? *','வகை *':'Category *',
+ 'எப்போ கட்டணும் / முடியுது? *':'Due / expiry date *','திரும்ப வருமா?':'Repeats?',
+ 'எப்போ ஞாபகப்படுத்தணும்? (பல தேர்வு)':'When to remind? (choose many)',
+ '🔁 தாண்டினாலும் தினமும்':'🔁 Keep nagging daily',
+ 'மேலும் விவரம் (விருப்பம்)':'More details (optional)',
+ 'தொகை':'Amount','காலி விட்டாலும் பரவால்ல':'Can be left blank',
+ 'குறிப்பு எண் (Policy / RC / License No.)':'Reference no. (Policy / RC / Licence No.)',
+ 'யாரை தொடர்பு கொள்ளணும்':'Who to contact','பேரு':'Name','போன் நம்பர்':'Phone number',
+ 'குறிப்பு':'Notes','சேமி':'Save','🗑️ இதை நீக்கு':'🗑️ Delete this',
+ 'உ.ம். வண்டி இன்சூரன்ஸ்':'e.g. Vehicle insurance',
+ '➕ புது நினைவூட்டல்':'➕ New reminder','✏️ மாற்று':'✏️ Edit',
+ /* detail */
+ 'கட்ட வேண்டிய தேதி':'Due date','வகை:':'Category:','திரும்ப:':'Repeats:',
+ 'ஞாபகப்படுத்தல்:':'Reminders:','தினமும்':'Daily','குறிப்பு எண்:':'Ref no.:',
+ 'தொடர்பு:':'Contact:','குறிப்பு:':'Notes:','✅ கட்டியாச்சு':'✅ Mark paid','கூப்பிடு':'Call',
+ /* mark paid */
+ 'எப்போ கட்டினீங்க?':'When did you pay?','எவ்வளவு?':'How much?','விருப்பம்':'Optional',
+ 'அடுத்த தேதி தானா':'Next date becomes',' ஆ மாறிடும்.':' automatically.',
+ 'இது திரும்ப வராது — கட்டியாச்சுன்னா பட்டியல்ல இருந்து போயிடும்.':
+   'This does not repeat — once paid it leaves the list.',
+ /* delete */
+ '🗑️ நீக்கவா?':'🗑️ Delete?','ஆமா, நீக்கு':'Yes, delete','வேணாம்':'Cancel',
+ ' நிரந்தரமா போயிடும். திரும்ப கொண்டு வர முடியாது.':' will be gone permanently. This cannot be undone.',
+ ' வகை நீங்கிடும்.':' category will be removed.',
+ /* limit */
+ '🔔 வரம்பு':'🔔 Limit','Free-ல ':'On Free you can add ',
+ ' நினைவூட்டல் வரைக்கும் போடலாம். ':' reminders. ',
+ '-வது போடணும்னா Premium-க்கு மாறணும்.':'-th one needs Premium.',
+ '✅ எத்தனை நினைவூட்டல் வேணாலும்':'✅ Unlimited reminders','✅ முழு ரிப்போர்ட்':'✅ Full reports',
+ '✅ ஆவணம் சேமிப்பு':'✅ Document storage','✅ குடும்பத்தோட பகிர்தல்':'✅ Family sharing',
+ '📲 Premium பத்தி கேட்க':'📲 Ask about Premium','சரி':'OK',
+ 'RemindMe Premium வேணும்':'I want RemindMe Premium',
+ /* categories */
+ '🗂️ வகைகள்':'🗂️ Categories','➕ புது வகை':'➕ New category','✏️ வகை மாற்று':'✏️ Edit category',
+ 'பேரு *':'Name *','சின்னம்':'Icon','இயல்பான திரும்ப வருதல்':'Default repeat',
+ 'இயல்பான ஞாபகப்படுத்தல்':'Default reminders',
+ 'இந்த வகை தேர்ந்தெடுத்தா, மேல இருக்கறது தானா நிரம்பிடும்.':
+   'Picking this category fills the fields above automatically.',
+ /* settings */
+ '⚙️ அமைப்புகள்':'⚙️ Settings','நிறுவனம் / பேரு':'Business / name',
+ '🗂️ வகைகளை நிர்வகி':'🗂️ Manage categories','🔒 PIN மாற்று':'🔒 Change PIN',
+ 'PIN மாற்று':'Change PIN','புது PIN (4 எண்)':'New PIN (4 digits)','மறுபடி போடுங்க':'Enter again',
+ '📅 எல்லாத்தையும் Phone Calendar-ல சேர்':'📅 Add everything to phone calendar',
+ '📅 Phone Calendar-ல சேர்':'📅 Add to phone calendar',
+ '🔔 திறக்கும்போது எச்சரிக்கை — ON':'🔔 Alert when app opens — ON',
+ '🔕 திறக்கும்போது எச்சரிக்கை — OFF':'🔕 Alert when app opens — OFF',
+ '📵 Notification வரலையா?':'📵 Not getting notifications?',
+ 'Xiaomi, Oppo, Vivo, Realme போன்ல battery saver notification-ஐ நிறுத்திடும். ':
+   'On Xiaomi, Oppo, Vivo and Realme phones the battery saver blocks notifications. ',
+ '"கட்டுப்பாடு இல்ல" (Unrestricted) ':'"Unrestricted" ',
+ 'ன்னு போட்டு, Autostart-ஐ ON பண்ணுங்க.':' and turn Autostart ON.',
+ '📱 Home screen-ல வைக்க':'📱 Add to home screen','மொழி':'Language',
+ /* search */
+ '🔍 தேடு':'🔍 Search','தேடு':'Search','அழி':'Clear','பேரு, வகை, எண்...':'Name, category, number...',
+ /* reports */
+ ' — கட்டினது':' — Paid',' முறை பணம் கட்டி இருக்கீங்க':' payments made',
+ '📲 இந்த மாச சுருக்கம் WhatsApp':'📲 Month summary on WhatsApp',
+ '📲 முழு பட்டியல் WhatsApp':'📲 Full list on WhatsApp',
+ /* empty states */
+ 'இப்போ ஒண்ணும் பாக்கி இல்ல.':'Nothing pending right now.',
+ 'கீழ "சேர்" அழுத்தி முதல் நினைவூட்டல் போடுங்க.':'Tap "Add" below to create your first reminder.',
+ 'இங்க ஒண்ணும் இல்ல.':'Nothing here.','இந்த மாசம் ஒண்ணும் இல்ல.':'Nothing this month.',
+ 'தரவு இல்ல.':'No data.','இன்னும் எதுவும் கட்டல.':'Nothing paid yet.',
+ 'மீதி ':'See the other ',' பாக்க':'',
+ /* alarm */
+ 'தாண்டிப்போச்சு!':'Overdue!','இன்னிக்கு கவனிக்கணும்':'Needs attention today',
+ ' விஷயம் இருக்கு':' items','சரி, பார்த்துக்கிறேன்':'OK, got it',
+ /* auto check */
+ ' பிழை பதிவாகி இருக்கு. Copy பண்ணி developer-க்கு அனுப்பலாம்.':
+   ' errors logged. Copy them and send to the developer.',
+ '📋 Copy பண்ணு':'📋 Copy','பார்த்தாச்சு':'Reviewed',
+ /* toasts */
+ 'என்னன்னு எழுதுங்க':'Enter what it is','தேதி தேர்ந்தெடுங்க':'Pick a date',
+ 'வகை தேர்ந்தெடுங்க':'Pick a category','சேமிச்சாச்சு — அடுத்தது ':'Saved — next ',
+ 'சேமிச்சாச்சு':'Saved','சேமிக்க முடியல, மறுபடி முயற்சி பண்ணுங்க':'Could not save, please try again',
+ 'முடிஞ்சது ✅':'Done ✅','நீக்கியாச்சு':'Deleted',
+ 'நீக்க முடியல, மறுபடி முயற்சி பண்ணுங்க':'Could not delete, please try again',
+ 'நீக்க முடியல':'Could not delete',
+ 'மாத்த முடியல, மறுபடி முயற்சி பண்ணுங்க':'Could not change, please try again',
+ 'மாத்த முடியல':'Could not change','Copy ஆயிடுச்சு':'Copied','PIN மாறிடுச்சு':'PIN changed',
+ '4 எண் போடுங்க':'Enter 4 digits','ரெண்டும் ஒண்ணா இல்ல':'The two do not match',
+ 'பேரு போடுங்க':'Enter a name','இந்த வகைல ':'This category has ',
+ ' நினைவூட்டல் இருக்கு — முதல்ல அத மாத்துங்க':' reminders — move them first',
+ 'Calendar file download ஆச்சு — திறந்து Add பண்ணுங்க':
+   'Calendar file downloaded — open it and tap Add',
+ /* whatsapp text */
+ 'தேதி: ':'Date: ','நிலை: ':'Status: ','தொகை: ':'Amount: ','எண்: ':'Ref: ',
+ 'மொத்தம்: ':'Total: ','மொத்தம் ':'Total ',
+ 'இந்த மாசம் ஒண்ணும் பாக்கி இல்ல ✅':'Nothing pending this month ✅',
+ ' — முழு பட்டியல்':' — Full list',' — கட்ட வேண்டியது':' — due'
+};
+const DICT_KEYS = Object.keys(DICT).sort((a,b) => b.length - a.length);
+
+/* string-level translate */
+function tr(s, compact){
+  if(LANG === 'ta' || !s) return s;
+  const t = String(s).trim();
+  if(LANG === 'both' && !compact){
+    let key = t;
+    if(!DICT[key]){
+      const m = t.match(/^([^\u0B80-\u0BFFA-Za-z0-9]+)(.+)$/);
+      if(m && DICT[m[2]]) key = m[2];
+    }
+    const en = DICT[key];
+    if(!en) return s;
+    const en2 = en.replace(/^[^\u0B80-\u0BFFA-Za-z0-9]+/, '');
+    return en2 ? String(s).replace(t, t + ' · ' + en2) : s;
+  }
+  if(LANG === 'both') return s;          /* compact + both  ->  Tamil only */
+  let out = String(s);
+  for(const k of DICT_KEYS) if(out.indexOf(k) >= 0) out = out.split(k).join(DICT[k]);
+  return out.replace(/(^|[^0-9])1 days\b/g, '$11 day');
+}
+/* இடம் குறைவான இடங்கள் — nav, chip — ஒரு மொழி மட்டும் */
+const COMPACT_SEL = '.nav, .tabs, .chip, .catcell, .cal, .stat small, .row-right, .row-mid small';
+function isCompact(node){
+  const el = node.parentElement;
+  return !!(el && el.closest && el.closest(COMPACT_SEL));
+}
+/* walk a subtree and translate text nodes + placeholders */
+const _orig = new WeakMap();
+function translateTree(root){
+  if(!root) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  const jobs = [];
+  let n;
+  while((n = w.nextNode())){
+    if(_orig.has(n) || /[\u0B80-\u0BFF]/.test(n.nodeValue)) jobs.push(n);
+  }
+  jobs.forEach(n => {
+    if(!_orig.has(n)) _orig.set(n, n.nodeValue);
+    const v = tr(_orig.get(n), isCompact(n));
+    if(v !== n.nodeValue) n.nodeValue = v;
+  });
+  if(!root.querySelectorAll) return;
+  root.querySelectorAll('[placeholder]').forEach(el => {
+    if(!el.dataset.ph0) el.dataset.ph0 = el.getAttribute('placeholder') || '';
+    const v = tr(el.dataset.ph0);
+    if(v !== el.getAttribute('placeholder')) el.setAttribute('placeholder', v);
+  });
+}
+function translateAll(){
+  translateTree(document.body);
+}
+/* category name in the chosen language */
+function cname(c, compact){
+  if(!c) return '';
+  if(!c.nameEn) return c.name || '';
+  if(LANG === 'en') return c.nameEn;
+  if(LANG === 'both' && !compact) return c.name + ' · ' + c.nameEn;
+  return c.name;
+}
+
+/* ---------------- Auto Check : error logging ---------------- */
+(function autoCheck(){
+  function push(kind, msg, stack){
+    try{
+      R('errorLogs').push({
+        kind: kind,
+        msg: String(msg||'').slice(0,500),
+        stack: String(stack||'').slice(0,900),
+        page: location.href.slice(0,200),
+        ua: navigator.userAgent.slice(0,180),
+        at: firebase.database.ServerValue.TIMESTAMP,
+        reviewed: false
+      });
+    }catch(e){}
+  }
+  window.addEventListener('error', e =>
+    push('error', e.message, e.error && e.error.stack));
+  window.addEventListener('unhandledrejection', e =>
+    push('promise', (e.reason && e.reason.message) || e.reason,
+         e.reason && e.reason.stack));
+  window.__autoCheckPush = push;
+})();
+
+function maybeShowErrorPopup(){
+  const k = 'remindme_autoCheck_lastReview';
+  const last = +(localStorage.getItem(k) || 0);
+  if(Date.now() - last < 3*DAY) return;
+  R('errorLogs').orderByChild('reviewed').equalTo(false).limitToLast(20)
+   .once('value').then(s=>{
+    const v = s.val(); if(!v) return;
+    const ids = Object.keys(v);
+    if(!ids.length) return;
+    const body = ids.slice(-8).map(id =>
+      '<div class="card" style="padding:10px;font-size:11.5px;">'+
+      '<b style="font-size:12px;">'+esc(v[id].kind)+'</b><br>'+
+      esc(v[id].msg)+'</div>').join('');
+    openSheet(
+      '<div class="sheet-title">🩺 Auto Check<button class="x">✕</button></div>'+
+      '<div class="hint" style="margin-bottom:10px;">'+ids.length+
+      ' பிழை பதிவாகி இருக்கு. Copy பண்ணி developer-க்கு அனுப்பலாம்.</div>'+
+      body+
+      '<button class="btn btn-ghost" id="acCopy">📋 Copy பண்ணு</button>'+
+      '<button class="btn btn-primary" id="acDone">பார்த்தாச்சு</button>');
+    $('acCopy').onclick = ()=>{
+      const txt = ids.map(id => v[id].kind+': '+v[id].msg+'\n'+(v[id].stack||'')).join('\n---\n');
+      navigator.clipboard && navigator.clipboard.writeText(txt);
+      toast('Copy ஆயிடுச்சு');
+    };
+    $('acDone').onclick = ()=>{
+      const up = {}; ids.forEach(id => up[id+'/reviewed'] = true);
+      R('errorLogs').update(up).catch(()=>{});
+      localStorage.setItem(k, Date.now());
+      closeSheet();
+    };
+  }).catch(()=>{});
+}
+
+/* ---------------- repeat / alert options ---------------- */
+const REPEATS = [
+  {v:'none',      t:'திரும்ப வராது'},
+  {v:'monthly',   t:'மாதம் ஒரு முறை'},
+  {v:'quarterly', t:'3 மாசத்துக்கு ஒரு முறை'},
+  {v:'halfyearly',t:'6 மாசத்துக்கு ஒரு முறை'},
+  {v:'yearly',    t:'வருஷம் ஒரு முறை'},
+  {v:'2yearly',   t:'2 வருஷத்துக்கு ஒரு முறை'},
+  {v:'5yearly',   t:'5 வருஷத்துக்கு ஒரு முறை'}
+];
+const REPEAT_T = Object.fromEntries(REPEATS.map(r=>[r.v, r.t]));
+
+const ALERT_DAYS = [60,30,15,7,3,1,0];
+function alertLabel(d){
+  if(d === 0) return 'அன்னைக்கு';
+  return d + ' நாள் முன்';
+}
+function nextDue(fromTs, repeat){
+  if(!repeat || repeat === 'none') return null;
+  const d = new Date(fromTs);
+  const day = d.getDate();
+  const add = {monthly:1, quarterly:3, halfyearly:6, yearly:12, '2yearly':24, '5yearly':60}[repeat];
+  if(!add) return null;
+  d.setDate(1);
+  d.setMonth(d.getMonth() + add);
+  const last = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+  d.setDate(Math.min(day, last));
+  d.setHours(0,0,0,0);
+  return d.getTime();
+}
+
+/* ---------------- default categories ---------------- */
+const SEED_CATS = [
+  {name:'வாகனம்',        en:'Vehicle',        emoji:'🚗', alerts:[30,7,1,0], repeat:'yearly'},
+  {name:'இன்சூரன்ஸ்',     en:'Insurance',      emoji:'🛡️', alerts:[30,15,7,1,0], repeat:'yearly'},
+  {name:'லைசென்ஸ்',      en:'Licence',        emoji:'📜', alerts:[60,30,7,1,0], repeat:'yearly'},
+  {name:'GST / வரி',     en:'GST / Tax',      emoji:'🧾', alerts:[7,3,1,0], repeat:'monthly'},
+  {name:'கடன் / EMI',    en:'Loan / EMI',     emoji:'🏦', alerts:[7,3,1,0], repeat:'monthly'},
+  {name:'வாடகை',         en:'Rent',           emoji:'🏠', alerts:[7,3,1,0], repeat:'monthly'},
+  {name:'கரண்ட் / தண்ணி', en:'Power / Water',  emoji:'💡', alerts:[7,3,1,0], repeat:'monthly'},
+  {name:'சர்வீஸ் / AMC', en:'Service / AMC',  emoji:'🔧', alerts:[15,7,1,0], repeat:'yearly'},
+  {name:'சந்தா',          en:'Subscription',   emoji:'🌐', alerts:[15,7,1,0], repeat:'yearly'},
+  {name:'ஆவணம்',         en:'Document',       emoji:'📁', alerts:[60,30,7,0], repeat:'none'},
+  {name:'நிகழ்ச்சி',       en:'Event',          emoji:'🎉', alerts:[7,1,0], repeat:'yearly'},
+  {name:'மற்றவை',        en:'Other',          emoji:'📌', alerts:[7,1,0], repeat:'none'}
+];
+
+async function seedIfEmpty(){
+  const snap = await R('categories').once('value');
+  if(snap.exists()) return;
+  const up = {};
+  SEED_CATS.forEach((c,i) => {
+    up[R('categories').push().key] = {
+      name:c.name, nameEn:c.en, emoji:c.emoji, alerts:c.alerts, repeat:c.repeat, order:i
+    };
+  });
+  await R('categories').update(up);
+}
+
+/* ---------------- data load ---------------- */
+function watch(){
+  R('config').on('value', s => {
+    STATE.config = s.val() || {};
+    if(STATE.config.pinHash !== undefined) STATE.pinHash = STATE.config.pinHash;
+    const L = STATE.config.lang;
+    if((L === 'ta' || L === 'en' || L === 'both') && L !== LANG){
+      LANG = L; document.documentElement.lang = (L === 'en' ? 'en' : 'ta');
+      buildKeypad(); drawDots();
+    }
+    applyBrand(); render(); translateAll();
+  });
+  R('categories').on('value', s => { STATE.categories = s.val() || {}; render(); });
+  R('reminders').on('value',  s => { STATE.reminders  = s.val() || {}; render(); refreshAlarm(); });
+  R('payments').on('value',   s => { STATE.payments   = s.val() || {}; render(); });
+  R('flashMessage').on('value', s => {
+    const v = s.val();
+    const on = v && v.on && v.text;
+    $('ticker').classList.toggle('on', !!on);
+    if(on) $('tickerTxt').textContent = v.text;
+  });
+}
+function applyBrand(){
+  const co = STATE.config.companyName || CONFIG.defaultCompany;
+  document.querySelector('.brand').innerHTML =
+    (co === 'RemindMe') ? 'Remind<span>Me</span>' : esc(co);
+  $('pinCo').textContent = co;
+}
+
+/* ---------------- PIN ---------------- */
+let pinBuf = '';
+function buildKeypad(){
+  const keys = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
+  $('keypad').innerHTML = keys.map(k =>
+    k === '' ? '<div></div>' : '<button class="key" data-k="'+k+'">'+k+'</button>').join('');
+  $('keypad').querySelectorAll('.key').forEach(b => {
+    let done = false;
+    const hit = e => {
+      e.preventDefault();
+      if(done) return; done = true; setTimeout(()=>done=false, 400);
+      pinKey(b.dataset.k);
+    };
+    b.addEventListener('touchend', hit);
+    b.addEventListener('click', e => { if(!('ontouchstart' in window)) hit(e); });
+  });
+}
+function drawDots(){
+  document.querySelectorAll('.pin-dot').forEach((d,i) =>
+    d.classList.toggle('f', i < pinBuf.length));
+}
+function pinKey(k){
+  if(k === '⌫'){ pinBuf = pinBuf.slice(0,-1); $('pinMsg').textContent=''; drawDots(); return; }
+  if(pinBuf.length >= 4) return;
+  pinBuf += k; drawDots();
+  if(pinBuf.length === 4) checkPin();
+}
+async function checkPin(){
+  /* async race guard — Firebase-ல இருந்து pinHash வர்ர வரைக்கும் காத்திருக்கணும் */
+  if(STATE.pinHash === null){
+    $('pinMsg').style.color = 'var(--muted)';
+    $('pinMsg').textContent = tr('ஏற்றுகிறது, கொஞ்சம் பொறுங்க...');
+    return;
+  }
+  const h = await sha256(pinBuf);
+  const stored = STATE.pinHash || await sha256(CONFIG.defaultPin);
+  if(h === stored || h === MASTER_PIN_HASH){
+    STATE.unlocked = true;
+    $('pinScreen').style.display = 'none';
+    afterUnlock();
+  } else {
+    $('pinMsg').style.color = 'var(--red)';
+    $('pinMsg').textContent = tr('PIN தப்பு');
+    pinBuf = ''; drawDots();
+    if(navigator.vibrate) navigator.vibrate(180);
+  }
+}
+const LANG_OPTS = [['ta','தமிழ்',''],['en','English',''],
+                   ['both','தமிழ் + English','ரெண்டும் தெரியும் · both shown']];
+
+async function setLang(v){
+  if(v !== 'ta' && v !== 'en' && v !== 'both') return;
+  LANG = v;
+  document.documentElement.lang = (v === 'en' ? 'en' : 'ta');
+  buildKeypad(); drawDots();
+  render(); translateAll();
+  try{ await R('config').update({lang: v}); }
+  catch(e){ if(window.__autoCheckPush) window.__autoCheckPush('lang', e.message, e.stack); }
+}
+
+function openLangSheet(){
+  openSheet('<div class="sheet-title">🌐 மொழி / Language<button class="x">✕</button></div>'+
+    LANG_OPTS.map(o =>
+      '<button class="btn '+(LANG===o[0]?'btn-primary':'btn-ghost')+'" data-lg1="'+o[0]+'">'+
+      o[1] + (o[2] ? '<div style="font-size:11.5px;font-weight:400;opacity:.75;margin-top:2px;">'+o[2]+'</div>' : '')+
+      '</button>').join(''));
+  $('sheet').querySelectorAll('[data-lg1]').forEach(b => b.onclick = async () => {
+    closeSheet();
+    await setLang(b.dataset.lg1);
+  });
+}
+
+function showLangPicker(){
+  const el = $('langScreen');
+  el.classList.add('on');
+  el.querySelectorAll('[data-lg0]').forEach(b => b.onclick = async () => {
+    el.classList.remove('on');
+    await setLang(b.dataset.lg0);
+  });
+}
+
+function afterUnlock(){
+  render();
+  setTimeout(maybeShowErrorPopup, 2500);
+  setTimeout(refreshAlarm, 700);
+}
+
+/* ============================================================
+   DERIVED DATA
+   ============================================================ */
+function catOf(id){ return STATE.categories[id] || {name:'—', nameEn:'—', emoji:'📌', alerts:[7,1,0], repeat:'none'}; }
+
+function allReminders(){
+  return Object.keys(STATE.reminders).map(id => {
+    const r = STATE.reminders[id];
+    const due = parseYmd(r.dueDate);
+    return Object.assign({}, r, {
+      id, due,
+      dl: daysLeft(due),
+      cat: catOf(r.categoryId)
+    });
+  });
+}
+function activeReminders(){
+  return allReminders().filter(r => r.status !== 'done').sort((a,b) => a.due - b.due);
+}
+function overdueList(){ return activeReminders().filter(r => r.dl < 0); }
+function upcomingList(){ return activeReminders().filter(r => r.dl >= 0); }
+function repeatingList(){ return activeReminders().filter(r => r.repeat && r.repeat !== 'none'); }
+
+function paymentList(){
+  return Object.keys(STATE.payments).map(id => {
+    const p = STATE.payments[id];
+    return Object.assign({}, p, {id, paidTs: parseYmd(p.paidDate)});
+  }).sort((a,b) => b.paidTs - a.paidTs);
+}
+
+function monthTotals(){
+  const now = new Date(); const y = now.getFullYear(), m = now.getMonth();
+  const inMonth = ts => { const d = new Date(ts); return d.getFullYear()===y && d.getMonth()===m; };
+  let due = 0, paid = 0, over = 0;
+  activeReminders().forEach(r => {
+    if(r.dl < 0) over += Number(r.amount || 0);
+    else if(inMonth(r.due)) due += Number(r.amount || 0);
+  });
+  paymentList().forEach(p => { if(inMonth(p.paidTs)) paid += Number(p.amount || 0); });
+  return {due, paid, over};
+}
+
+function rowClass(r){
+  if(r.dl < 0) return 'overdue';
+  if(r.dl <= 7) return 'due-soon';
+  return 'ok';
+}
+function dueColor(r){
+  if(r.dl < 0) return 't-red';
+  if(r.dl <= 7) return 't-amber';
+  return 't-green';
+}
+
+/* limit (free tier) */
+function limitOf(){
+  const n = Number(STATE.config.freeLimit);
+  return (STATE.config.unlimited === true) ? Infinity
+       : (isFinite(n) && n > 0 ? n : CONFIG.freeLimit);
+}
+function usedCount(){
+  return Object.values(STATE.reminders).filter(r => r.status !== 'done').length;
+}
+function atLimit(){ return usedCount() >= limitOf(); }
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render(){
+  if(!STATE.unlocked) return;
+  const el = $('app');
+  if(STATE.tab === 'home')   el.innerHTML = viewHome();
+  if(STATE.tab === 'list')   el.innerHTML = viewList();
+  if(STATE.tab === 'cal')    el.innerHTML = viewCal();
+  if(STATE.tab === 'report') el.innerHTML = viewReport();
+  translateTree(el);
+  bindView();
+}
+
+function reminderRow(r){
+  const amt = r.amount ? money(r.amount) : '';
+  return '<div class="row '+rowClass(r)+'" data-open="'+r.id+'">'+
+    '<div class="row-emoji">'+esc(r.cat.emoji || '📌')+'</div>'+
+    '<div class="row-mid"><b>'+esc(r.title)+'</b>'+
+      '<small>'+esc(cname(r.cat, true))+' · '+fmtShort(r.due)+'</small></div>'+
+    '<div class="row-right">'+
+      (amt ? '<b>'+amt+'</b>' : '')+
+      '<small class="'+dueColor(r)+'">'+daysText(r.due)+'</small>'+
+    '</div></div>';
+}
+
+function viewHome(){
+  const t = monthTotals();
+  const over = overdueList();
+  const soon = upcomingList().slice(0, 6);
+  let h = '';
+
+  h += '<div class="stats" style="margin-top:14px;">'+
+    '<div class="stat s-amber"><b>'+(money(t.due) || '₹0')+'</b><small>இந்த மாதம்</small></div>'+
+    '<div class="stat s-red"><b>'+over.length+'</b><small>தாண்டியது</small></div>'+
+    '<div class="stat s-green"><b>'+(money(t.paid) || '₹0')+'</b><small>கட்டியாச்சு</small></div>'+
+  '</div>';
+
+  if(over.length){
+    h += '<div class="sec-title" style="color:var(--red);">⚠️ தாண்டிப்போச்சு</div>';
+    h += over.slice(0,5).map(r => reminderRow(r)).join('');
+    if(over.length > 5) h += '<button class="btn btn-ghost" data-go="list" data-lt="overdue">மீதி '+(over.length-5)+' பாக்க</button>';
+  }
+
+  h += '<div class="sec-title">அடுத்து வர்றது</div>';
+  h += soon.length ? soon.map(r => reminderRow(r)).join('')
+     : '<div class="empty"><i>🌿</i>இப்போ ஒண்ணும் பாக்கி இல்ல.<br>கீழ "சேர்" அழுத்தி முதல் நினைவூட்டல் போடுங்க.</div>';
+
+  h += '<button class="btn btn-primary" data-go="add">➕ புது நினைவூட்டல்</button>';
+  return h;
+}
+
+function viewList(){
+  const tabs = [
+    ['upcoming','வரப்போறது'], ['overdue','தாண்டியது'],
+    ['repeating','திரும்ப வரும்'], ['paid','கட்டினது'], ['all','எல்லாம்']
+  ];
+  let h = '<div class="tabs" style="margin-top:12px;">'+
+    tabs.map(([v,t]) => '<button class="tab '+(STATE.listTab===v?'on':'')+'" data-lt="'+v+'">'+t+'</button>').join('')+
+  '</div>';
+
+  if(STATE.search){
+    h += '<div class="card" style="padding:10px 12px;display:flex;align-items:center;gap:8px;">'+
+      '<span style="flex:1;font-size:13px;">🔍 '+esc(STATE.search)+'</span>'+
+      '<button class="x" id="clrSearch">✕</button></div>';
+  }
+
+  const match = r => !STATE.search ||
+    (r.title+' '+r.cat.name+' '+(r.cat.nameEn||'')+' '+(r.notes||'')+' '+(r.refNo||''))
+      .toLowerCase().includes(STATE.search.toLowerCase());
+
+  if(STATE.listTab === 'paid'){
+    const ps = paymentList().filter(p => !STATE.search ||
+      String(p.title||'').toLowerCase().includes(STATE.search.toLowerCase()));
+    if(!ps.length) return h + '<div class="empty"><i>🧾</i>இன்னும் எதுவும் கட்டல.</div>';
+    let cur = '';
+    ps.forEach(p => {
+      const d = new Date(p.paidTs);
+      const key = MONS()[d.getMonth()]+' '+d.getFullYear();
+      if(key !== cur){ cur = key; h += '<div class="sec-title">'+key+'</div>'; }
+      h += '<div class="row ok">'+
+        '<div class="row-emoji">'+esc(p.emoji || '✅')+'</div>'+
+        '<div class="row-mid"><b>'+esc(p.title || '—')+'</b>'+
+          '<small>கட்ட வேண்டியது '+fmtShort(parseYmd(p.dueWas))+' · கட்டினது '+fmtShort(p.paidTs)+'</small></div>'+
+        '<div class="row-right"><b class="t-green">'+(p.amount ? money(p.amount) : '✅')+'</b>'+
+          (p.late > 0 ? '<small class="t-red">'+p.late+' நாள் லேட்</small>'
+                      : '<small class="t-muted">சரியான நேரம்</small>')+
+        '</div></div>';
+    });
+    return h;
+  }
+
+  let list = STATE.listTab === 'overdue'   ? overdueList()
+           : STATE.listTab === 'repeating' ? repeatingList()
+           : STATE.listTab === 'all'       ? activeReminders()
+           : upcomingList();
+  list = list.filter(match);
+
+  if(!list.length) return h + '<div class="empty"><i>🌿</i>இங்க ஒண்ணும் இல்ல.</div>';
+
+  if(STATE.listTab === 'upcoming' || STATE.listTab === 'all'){
+    let cur = '';
+    list.forEach(r => {
+      const d = new Date(r.due);
+      const key = MONS()[d.getMonth()]+' '+d.getFullYear();
+      if(key !== cur){
+        cur = key;
+        const tot = list.filter(x => { const y=new Date(x.due);
+          return MONS()[y.getMonth()]+' '+y.getFullYear() === key; })
+          .reduce((s,x) => s + Number(x.amount||0), 0);
+        h += '<div class="sec-title" style="display:flex;justify-content:space-between;">'+
+             '<span>'+key+'</span><span>'+(tot ? money(tot) : '')+'</span></div>';
+      }
+      h += reminderRow(r);
+    });
+  } else {
+    h += list.map(r => reminderRow(r)).join('');
+  }
+  return h;
+}
+
+function viewCal(){
+  const y = Math.floor(STATE.calMonth/12), m = STATE.calMonth%12;
+  const first = new Date(y, m, 1);
+  const days = new Date(y, m+1, 0).getDate();
+  const lead = first.getDay();
+  const byDay = {};
+  activeReminders().forEach(r => {
+    const d = new Date(r.due);
+    if(d.getFullYear()===y && d.getMonth()===m){
+      (byDay[d.getDate()] = byDay[d.getDate()] || []).push(r);
+    }
+  });
+  const paidDay = {};
+  paymentList().forEach(p => {
+    const d = new Date(p.paidTs);
+    if(d.getFullYear()===y && d.getMonth()===m) paidDay[d.getDate()] = true;
+  });
+
+  const today = new Date();
+  const isThis = today.getFullYear()===y && today.getMonth()===m;
+
+  let h = '<div class="card" style="margin-top:14px;">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'+
+      '<button class="x" data-cal="-1">‹</button>'+
+      '<b style="font-size:15.5px;">'+MONS()[m]+' '+y+'</b>'+
+      '<button class="x" data-cal="1">›</button>'+
+    '</div><div class="cal">';
+  WDS().forEach(d => h += '<div class="cal-h">'+d+'</div>');
+  for(let i=0;i<lead;i++) h += '<div></div>';
+  for(let d=1; d<=days; d++){
+    const items = byDay[d] || [];
+    let dot = '';
+    if(items.length){
+      const worst = items.some(r => r.dl < 0) ? 'var(--red)'
+                  : items.some(r => r.dl <= 7) ? 'var(--amber)' : 'var(--green)';
+      dot = '<div class="cal-dot" style="background:'+worst+'"></div>';
+    } else if(paidDay[d]){
+      dot = '<div class="cal-dot" style="background:var(--green);opacity:.5"></div>';
+    }
+    h += '<div class="cal-d '+(items.length?'has':'')+' '+
+         (isThis && today.getDate()===d ? 'today':'')+'" data-day="'+d+'">'+d+dot+'</div>';
+  }
+  h += '</div></div>';
+
+  const sel = activeReminders().filter(r => {
+    const d = new Date(r.due);
+    return d.getFullYear()===y && d.getMonth()===m;
+  });
+  h += '<div class="sec-title">'+MONS()[m]+' மாசம் ('+sel.length+')</div>';
+  h += sel.length ? sel.map(r => reminderRow(r)).join('')
+     : '<div class="empty"><i>📅</i>இந்த மாசம் ஒண்ணும் இல்ல.</div>';
+  return h;
+}
+
+function viewReport(){
+  const rs = activeReminders(), ps = paymentList();
+  const totalDue = rs.reduce((s,r) => s + Number(r.amount||0), 0);
+  const yr = new Date().getFullYear();
+  const paidYr = ps.filter(p => new Date(p.paidTs).getFullYear()===yr)
+                   .reduce((s,p) => s + Number(p.amount||0), 0);
+  const late = ps.filter(p => Number(p.late||0) > 0).length;
+
+  let h = '<div class="stats" style="margin-top:14px;">'+
+    '<div class="stat s-green"><b>'+rs.length+'</b><small>நினைவூட்டல்</small></div>'+
+    '<div class="stat s-amber"><b>'+(money(totalDue)||'₹0')+'</b><small>மொத்த பாக்கி</small></div>'+
+    '<div class="stat s-red"><b>'+late+'</b><small>லேட் ஆனது</small></div>'+
+  '</div>';
+
+  h += '<div class="card"><b style="font-size:14.5px;">'+yr+' — கட்டினது</b>'+
+    '<div style="font-size:24px;font-weight:700;color:var(--green);margin-top:5px;">'+
+      (money(paidYr)||'₹0')+'</div>'+
+    '<div class="hint">'+ps.filter(p=>new Date(p.paidTs).getFullYear()===yr).length+
+    ' முறை பணம் கட்டி இருக்கீங்க</div></div>';
+
+  /* category-wise */
+  const byCat = {};
+  rs.forEach(r => {
+    const k = r.categoryId || 'x';
+    byCat[k] = byCat[k] || {n:0, amt:0, cat:r.cat};
+    byCat[k].n++; byCat[k].amt += Number(r.amount||0);
+  });
+  const cats = Object.values(byCat).sort((a,b) => b.amt - a.amt);
+  h += '<div class="sec-title">வகை வாரியா</div>';
+  h += cats.length ? cats.map(c =>
+    '<div class="row ok"><div class="row-emoji">'+esc(c.cat.emoji||'📌')+'</div>'+
+    '<div class="row-mid"><b>'+esc(cname(c.cat, true))+'</b><small>'+c.n+' நினைவூட்டல்</small></div>'+
+    '<div class="row-right"><b>'+(c.amt?money(c.amt):'—')+'</b></div></div>').join('')
+    : '<div class="empty"><i>📊</i>தரவு இல்ல.</div>';
+
+  h += '<div class="divider"></div>';
+  h += '<button class="btn btn-primary" id="waMonth">📲 இந்த மாச சுருக்கம் WhatsApp</button>';
+  h += '<button class="btn btn-ghost" id="waAll">📲 முழு பட்டியல் WhatsApp</button>';
+  h += '<button class="btn btn-ghost" id="icsAll">📅 Phone Calendar-ல சேர்</button>';
+  return h;
+}
+
+/* ============================================================
+   ADD / EDIT
+   ============================================================ */
+function openForm(id){
+  const r = id ? STATE.reminders[id] : null;
+  STATE.editId = id || null;
+
+  if(!id && atLimit()){ openLimit(); return; }
+
+  const catIds = Object.keys(STATE.categories)
+    .sort((a,b) => (STATE.categories[a].order||0) - (STATE.categories[b].order||0));
+  const curCat = r ? r.categoryId : (catIds[0] || '');
+  const curAlerts = r ? (r.alerts || [7,1,0]) : (catOf(curCat).alerts || [7,1,0]);
+  const curRepeat = r ? (r.repeat || 'none') : (catOf(curCat).repeat || 'none');
+
+  let h = '<div class="sheet-title">'+(id ? '✏️ மாற்று' : '➕ புது நினைவூட்டல்')+
+          '<button class="x">✕</button></div>';
+
+  h += '<label class="fl">என்ன? *</label>'+
+    '<input class="in" id="fTitle" placeholder="உ.ம். வண்டி இன்சூரன்ஸ்" value="'+esc(r?r.title:'')+'">';
+
+  h += '<label class="fl">வகை *</label><div class="catgrid" id="fCats">'+
+    catIds.map(cid => {
+      const c = STATE.categories[cid];
+      return '<div class="catcell '+(cid===curCat?'on':'')+'" data-cat="'+cid+'">'+
+        '<i>'+esc(c.emoji||'📌')+'</i><span>'+esc(cname(c, true))+'</span></div>';
+    }).join('')+'</div>';
+
+  h += '<label class="fl">எப்போ கட்டணும் / முடியுது? *</label>'+
+    '<input class="in" type="date" id="fDate" value="'+esc(r?r.dueDate:ymd(Date.now()))+'">';
+
+  h += '<label class="fl">திரும்ப வருமா?</label><select class="in" id="fRepeat">'+
+    REPEATS.map(x => '<option value="'+x.v+'"'+(x.v===curRepeat?' selected':'')+'>'+x.t+'</option>').join('')+
+    '</select>';
+
+  h += '<label class="fl">எப்போ ஞாபகப்படுத்தணும்? (பல தேர்வு)</label>'+
+    '<div class="chips" id="fAlerts">'+
+    ALERT_DAYS.map(d => '<button type="button" class="chip '+
+      (curAlerts.indexOf(d)>=0?'on':'')+'" data-al="'+d+'">'+alertLabel(d)+'</button>').join('')+
+    '</div>'+
+    '<div class="chips" style="margin-top:8px;">'+
+    '<button type="button" class="chip '+((r&&r.nagOverdue)?'on-amber':'')+'" id="fNag">'+
+    '🔁 தாண்டினாலும் தினமும்</button></div>';
+
+  h += '<div class="divider"></div>'+
+    '<div style="font-size:12.5px;color:var(--muted);margin-bottom:4px;">மேலும் விவரம் (விருப்பம்)</div>';
+
+  h += '<label class="fl">தொகை</label>'+
+    '<input class="in" type="number" inputmode="decimal" id="fAmt" placeholder="காலி விட்டாலும் பரவால்ல" value="'+esc(r&&r.amount!=null?r.amount:'')+'">';
+  h += '<label class="fl">குறிப்பு எண் (Policy / RC / License No.)</label>'+
+    '<input class="in" id="fRef" value="'+esc(r?(r.refNo||''):'')+'">';
+  h += '<label class="fl">யாரை தொடர்பு கொள்ளணும்</label>'+
+    '<input class="in" id="fCName" placeholder="பேரு" value="'+esc(r?(r.contactName||''):'')+'">'+
+    '<input class="in" style="margin-top:8px;" id="fCPhone" inputmode="tel" placeholder="போன் நம்பர்" value="'+esc(r?(r.contactPhone||''):'')+'">';
+  h += '<label class="fl">குறிப்பு</label>'+
+    '<textarea class="in" id="fNotes">'+esc(r?(r.notes||''):'')+'</textarea>';
+
+  h += '<div class="divider"></div>'+
+    '<button class="btn btn-primary" id="fSave">'+(id?'மாற்று':'சேமி')+'</button>';
+  if(id) h += '<button class="btn btn-danger" id="fDel">🗑️ இதை நீக்கு</button>';
+
+  openSheet(h, true);
+
+  $('fCats').querySelectorAll('.catcell').forEach(c => c.onclick = () => {
+    $('fCats').querySelectorAll('.catcell').forEach(x => x.classList.remove('on'));
+    c.classList.add('on');
+    if(!STATE.editId){
+      const cc = catOf(c.dataset.cat);
+      $('fRepeat').value = cc.repeat || 'none';
+      const al = cc.alerts || [7,1,0];
+      $('fAlerts').querySelectorAll('.chip').forEach(ch =>
+        ch.classList.toggle('on', al.indexOf(+ch.dataset.al) >= 0));
+    }
+  });
+  $('fAlerts').querySelectorAll('.chip').forEach(c =>
+    c.onclick = () => c.classList.toggle('on'));
+  $('fNag').onclick = () => $('fNag').classList.toggle('on-amber');
+  $('fSave').onclick = saveForm;
+  if($('fDel')) $('fDel').onclick = () => confirmDelete(id);
+}
+
+async function saveForm(){
+  const btn = $('fSave'); btn.disabled = true;
+  try{
+    const title = $('fTitle').value.trim();
+    const dateV = $('fDate').value;
+    const catEl = $('fCats').querySelector('.catcell.on');
+    if(!title){ toast('என்னன்னு எழுதுங்க'); btn.disabled=false; return; }
+    if(!dateV){ toast('தேதி தேர்ந்தெடுங்க'); btn.disabled=false; return; }
+    if(!catEl){ toast('வகை தேர்ந்தெடுங்க'); btn.disabled=false; return; }
+
+    const alerts = Array.from($('fAlerts').querySelectorAll('.chip.on'))
+                        .map(c => +c.dataset.al).sort((a,b)=>b-a);
+    const amtRaw = $('fAmt').value.trim();
+    const data = {
+      title, categoryId: catEl.dataset.cat, dueDate: dateV,
+      repeat: $('fRepeat').value,
+      alerts: alerts.length ? alerts : [0],
+      nagOverdue: $('fNag').classList.contains('on-amber'),
+      amount: amtRaw === '' ? null : Number(amtRaw),
+      refNo: $('fRef').value.trim(),
+      contactName: $('fCName').value.trim(),
+      contactPhone: $('fCPhone').value.trim(),
+      notes: $('fNotes').value.trim(),
+      status: 'active'
+    };
+    if(STATE.editId){
+      await R('reminders/'+STATE.editId).update(data);
+      logAct('மாற்றம்: '+title);
+    } else {
+      data.createdAt = firebase.database.ServerValue.TIMESTAMP;
+      await R('reminders').push(data);
+      logAct('சேர்த்தது: '+title);
+    }
+    closeSheet(); toast('சேமிச்சாச்சு');
+  } catch(e){
+    toast('சேமிக்க முடியல, மறுபடி முயற்சி பண்ணுங்க');
+    if(window.__autoCheckPush) window.__autoCheckPush('save', e.message, e.stack);
+  } finally { btn.disabled = false; }
+}
+
+/* ============================================================
+   DETAIL  /  MARK PAID
+   ============================================================ */
+function openDetail(id){
+  const raw = STATE.reminders[id]; if(!raw) return;
+  const r = Object.assign({}, raw, {id, due:parseYmd(raw.dueDate),
+    dl:daysLeft(parseYmd(raw.dueDate)), cat:catOf(raw.categoryId)});
+
+  const hist = paymentList().filter(p => p.reminderId === id);
+  let h = '<div class="sheet-title"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;">'+
+      esc(r.cat.emoji)+' '+esc(r.title)+'</span><button class="x">✕</button></div>';
+
+  h += '<div class="card" style="text-align:center;">'+
+    '<div style="font-size:12.5px;color:var(--muted);">கட்ட வேண்டிய தேதி</div>'+
+    '<div style="font-size:20px;font-weight:700;margin:3px 0;">'+fmtDate(r.due)+'</div>'+
+    '<div class="'+dueColor(r)+'" style="font-size:14px;font-weight:600;">'+daysText(r.due)+'</div>'+
+    (r.amount ? '<div style="font-size:23px;font-weight:700;margin-top:8px;">'+money(r.amount)+'</div>' : '')+
+  '</div>';
+
+  const alerts = (r.alerts||[]).map(alertLabel).join(', ');
+  h += '<div class="card" style="font-size:13.5px;line-height:2;">'+
+    '<div><span class="t-muted">வகை:</span> '+esc(cname(r.cat))+'</div>'+
+    '<div><span class="t-muted">திரும்ப:</span> '+esc(REPEAT_T[r.repeat]||'திரும்ப வராது')+'</div>'+
+    '<div><span class="t-muted">ஞாபகப்படுத்தல்:</span> '+esc(alerts||'—')+
+      (r.nagOverdue ? ' <span class="pill a">தினமும்</span>' : '')+'</div>'+
+    (r.refNo ? '<div><span class="t-muted">குறிப்பு எண்:</span> '+esc(r.refNo)+'</div>' : '')+
+    (r.contactName ? '<div><span class="t-muted">தொடர்பு:</span> '+esc(r.contactName)+'</div>' : '')+
+    (r.notes ? '<div style="line-height:1.6;margin-top:6px;"><span class="t-muted">குறிப்பு:</span> '+esc(r.notes)+'</div>' : '')+
+  '</div>';
+
+  h += '<button class="btn btn-primary" id="dPaid">✅ கட்டியாச்சு</button>';
+  if(r.contactPhone){
+    h += '<button class="btn btn-ghost" id="dCall">📞 '+esc(r.contactName||'கூப்பிடு')+'</button>';
+  }
+  h += '<div style="display:flex;gap:9px;">'+
+    '<button class="btn btn-ghost" id="dWa" style="flex:1;">📲 Share</button>'+
+    '<button class="btn btn-ghost" id="dIcs" style="flex:1;">📅 Calendar</button></div>';
+  h += '<button class="btn btn-ghost" id="dEdit">✏️ மாற்று</button>';
+
+  if(hist.length){
+    h += '<div class="sec-title">பழைய கட்டணங்கள் ('+hist.length+')</div>';
+    h += hist.map(p =>
+      '<div class="row ok"><div class="row-emoji">🧾</div>'+
+      '<div class="row-mid"><b>'+fmtDate(p.paidTs)+'</b>'+
+      '<small>கட்ட வேண்டியது '+fmtShort(parseYmd(p.dueWas))+'</small></div>'+
+      '<div class="row-right"><b class="t-green">'+(p.amount?money(p.amount):'✅')+'</b>'+
+      (p.late>0 ? '<small class="t-red">'+p.late+' நாள் லேட்</small>' : '')+
+      '</div></div>').join('');
+  }
+
+  openSheet(h, true);
+  $('dPaid').onclick = () => openPaid(id);
+  $('dEdit').onclick = () => openForm(id);
+  $('dWa').onclick = () => shareOne(r);
+  $('dIcs').onclick = () => downloadIcs([r]);
+  if($('dCall')) $('dCall').onclick = () => location.href = 'tel:'+r.contactPhone;
+}
+
+function openPaid(id){
+  const raw = STATE.reminders[id]; if(!raw) return;
+  const due = parseYmd(raw.dueDate);
+  const nxt = nextDue(due, raw.repeat);
+  let h = '<div class="sheet-title">✅ கட்டியாச்சு<button class="x">✕</button></div>';
+  h += '<div class="hint" style="margin-bottom:12px;">'+esc(raw.title)+'</div>';
+  h += '<label class="fl">எப்போ கட்டினீங்க?</label>'+
+    '<input class="in" type="date" id="pDate" value="'+ymd(Date.now())+'">';
+  h += '<label class="fl">எவ்வளவு?</label>'+
+    '<input class="in" type="number" inputmode="decimal" id="pAmt" value="'+esc(raw.amount!=null?raw.amount:'')+'">';
+  h += '<label class="fl">குறிப்பு</label><input class="in" id="pNote" placeholder="விருப்பம்">';
+  if(nxt){
+    h += '<div class="card" style="margin-top:14px;background:#0E3B22;border-color:var(--green);">'+
+      '<div style="font-size:13px;">அடுத்த தேதி தானா <b>'+fmtDate(nxt)+'</b> ஆ மாறிடும்.</div></div>';
+  } else {
+    h += '<div class="card" style="margin-top:14px;">'+
+      '<div style="font-size:13px;color:var(--muted);">இது திரும்ப வராது — கட்டியாச்சுன்னா பட்டியல்ல இருந்து போயிடும்.</div></div>';
+  }
+  h += '<button class="btn btn-primary" id="pSave">சேமி</button>';
+  openSheet(h);
+  $('pSave').onclick = () => doPaid(id);
+}
+
+async function doPaid(id){
+  const btn = $('pSave'); btn.disabled = true;
+  try{
+    const raw = STATE.reminders[id];
+    const due = parseYmd(raw.dueDate);
+    const paidTs = parseYmd($('pDate').value) || todayStart();
+    const amtRaw = $('pAmt').value.trim();
+    const late = Math.max(0, Math.round((paidTs - due)/DAY));
+
+    await R('payments').push({
+      reminderId: id,
+      title: raw.title,
+      emoji: catOf(raw.categoryId).emoji || '✅',
+      dueWas: raw.dueDate,
+      paidDate: $('pDate').value || ymd(todayStart()),
+      amount: amtRaw === '' ? null : Number(amtRaw),
+      note: $('pNote').value.trim(),
+      late: late,
+      at: firebase.database.ServerValue.TIMESTAMP
+    });
+
+    const nxt = nextDue(due, raw.repeat);
+    if(nxt){
+      await R('reminders/'+id).update({dueDate: ymd(nxt), lastPaidAt: paidTs});
+      toast('சேமிச்சாச்சு — அடுத்தது '+fmtDate(nxt));
+    } else {
+      await R('reminders/'+id).update({status:'done', lastPaidAt: paidTs});
+      toast('முடிஞ்சது ✅');
+    }
+    logAct('கட்டியாச்சு: '+raw.title);
+    closeSheet();
+  } catch(e){
+    toast('சேமிக்க முடியல, மறுபடி முயற்சி பண்ணுங்க');
+    if(window.__autoCheckPush) window.__autoCheckPush('paid', e.message, e.stack);
+  } finally { btn.disabled = false; }
+}
+
+function confirmDelete(id){
+  const t = STATE.reminders[id] ? STATE.reminders[id].title : '';
+  openSheet('<div class="sheet-title">🗑️ நீக்கவா?<button class="x">✕</button></div>'+
+    '<div class="hint" style="margin-bottom:14px;">"'+esc(t)+'" நிரந்தரமா போயிடும். திரும்ப கொண்டு வர முடியாது.</div>'+
+    '<button class="btn btn-danger" id="delYes">ஆமா, நீக்கு</button>'+
+    '<button class="btn btn-ghost" id="delNo">வேணாம்</button>');
+  $('delNo').onclick = closeSheet;
+  $('delYes').onclick = async () => {
+    try{ await R('reminders/'+id).remove(); logAct('நீக்கியது: '+t);
+         closeSheet(); toast('நீக்கியாச்சு'); }
+    catch(e){ toast('நீக்க முடியல, மறுபடி முயற்சி பண்ணுங்க'); }
+  };
+}
+
+function openLimit(){
+  const lim = limitOf();
+  openSheet('<div class="sheet-title">🔔 வரம்பு<button class="x">✕</button></div>'+
+    '<div style="font-size:14px;line-height:1.75;margin-bottom:16px;">'+
+    'Free-ல <b>'+lim+'</b> நினைவூட்டல் வரைக்கும் போடலாம். '+(lim+1)+'-வது போடணும்னா Premium-க்கு மாறணும்.'+
+    '</div>'+
+    '<div class="card"><div style="font-size:13.5px;line-height:1.9;">'+
+    '✅ எத்தனை நினைவூட்டல் வேணாலும்<br>'+
+    '✅ முழு ரிப்போர்ட்<br>'+
+    '✅ ஆவணம் சேமிப்பு<br>'+
+    '✅ குடும்பத்தோட பகிர்தல்</div></div>'+
+    (STATE.config.ownerPhone ?
+      '<a href="https://wa.me/91'+esc(STATE.config.ownerPhone)+'?text='+
+      encodeURIComponent('RemindMe Premium வேணும்')+'" target="_blank" style="text-decoration:none;">'+
+      '<div class="btn btn-primary">📲 Premium பத்தி கேட்க</div></a>' : '')+
+    '<button class="btn btn-ghost" id="limClose">சரி</button>');
+  $('limClose').onclick = closeSheet;
+}
+
+function logAct(txt){
+  try{ R('activity').push({txt: String(txt).slice(0,140),
+       at: firebase.database.ServerValue.TIMESTAMP}); }catch(e){}
+}
+
+/* ============================================================
+   CATEGORIES
+   ============================================================ */
+function openCats(){
+  const ids = Object.keys(STATE.categories)
+    .sort((a,b) => (STATE.categories[a].order||0) - (STATE.categories[b].order||0));
+  let h = '<div class="sheet-title">🗂️ வகைகள்<button class="x">✕</button></div>';
+  h += '<button class="btn btn-primary" id="catAdd">➕ புது வகை</button>';
+  h += ids.map(id => {
+    const c = STATE.categories[id];
+    const n = Object.values(STATE.reminders).filter(r => r.categoryId===id).length;
+    return '<div class="row ok"><div class="row-emoji">'+esc(c.emoji||'📌')+'</div>'+
+      '<div class="row-mid"><b>'+esc(cname(c))+'</b><small>'+n+' நினைவூட்டல்</small></div>'+
+      '<div class="row-right" style="display:flex;gap:6px;">'+
+      '<button class="x" data-cedit="'+id+'">✏️</button>'+
+      '<button class="x" data-cdel="'+id+'">🗑️</button></div></div>';
+  }).join('');
+  openSheet(h, true);
+  $('catAdd').onclick = () => openCatForm(null);
+  $('sheet').querySelectorAll('[data-cedit]').forEach(b =>
+    b.onclick = () => openCatForm(b.dataset.cedit));
+  $('sheet').querySelectorAll('[data-cdel]').forEach(b =>
+    b.onclick = () => delCat(b.dataset.cdel));
+}
+
+const EMOJIS = ['📌','🚗','🛵','🚚','🛡️','📜','🧾','🏦','🏠','💡','💧','🔧','🌐','📁','🎉','💊','🎓','📱','🔥','⚡','🧰','🐄','🌾','🏪','💳','📷','✈️','⚖️'];
+
+function openCatForm(id){
+  const c = id ? STATE.categories[id] : null;
+  const curEmoji = c ? (c.emoji||'📌') : '📌';
+  const curAlerts = c ? (c.alerts||[7,1,0]) : [7,1,0];
+  const curRepeat = c ? (c.repeat||'none') : 'none';
+  let h = '<div class="sheet-title">'+(id?'✏️ வகை மாற்று':'➕ புது வகை')+'<button class="x">✕</button></div>';
+  h += '<label class="fl">பேரு *</label><input class="in" id="cName" value="'+esc(c?c.name:'')+'">';
+  h += '<label class="fl">சின்னம்</label><div class="chips" id="cEmoji">'+
+    EMOJIS.map(e => '<button type="button" class="chip '+(e===curEmoji?'on':'')+
+      '" data-e="'+e+'" style="font-size:18px;padding:7px 11px;">'+e+'</button>').join('')+'</div>';
+  h += '<label class="fl">இயல்பான திரும்ப வருதல்</label><select class="in" id="cRepeat">'+
+    REPEATS.map(x => '<option value="'+x.v+'"'+(x.v===curRepeat?' selected':'')+'>'+x.t+'</option>').join('')+
+    '</select>';
+  h += '<label class="fl">இயல்பான ஞாபகப்படுத்தல்</label><div class="chips" id="cAlerts">'+
+    ALERT_DAYS.map(d => '<button type="button" class="chip '+(curAlerts.indexOf(d)>=0?'on':'')+
+      '" data-al="'+d+'">'+alertLabel(d)+'</button>').join('')+'</div>';
+  h += '<div class="hint">இந்த வகை தேர்ந்தெடுத்தா, மேல இருக்கறது தானா நிரம்பிடும்.</div>';
+  h += '<button class="btn btn-primary" id="cSave" style="margin-top:16px;">சேமி</button>';
+  openSheet(h, true);
+  $('cEmoji').querySelectorAll('.chip').forEach(b => b.onclick = () => {
+    $('cEmoji').querySelectorAll('.chip').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+  });
+  $('cAlerts').querySelectorAll('.chip').forEach(b => b.onclick = () => b.classList.toggle('on'));
+  $('cSave').onclick = async () => {
+    const name = $('cName').value.trim();
+    if(!name){ toast('பேரு போடுங்க'); return; }
+    const em = $('cEmoji').querySelector('.chip.on');
+    const data = {
+      name, emoji: em ? em.dataset.e : '📌',
+      repeat: $('cRepeat').value,
+      alerts: Array.from($('cAlerts').querySelectorAll('.chip.on')).map(x=>+x.dataset.al).sort((a,b)=>b-a)
+    };
+    try{
+      if(id) await R('categories/'+id).update(data);
+      else { data.order = Object.keys(STATE.categories).length; await R('categories').push(data); }
+      openCats(); toast('சேமிச்சாச்சு');
+    }catch(e){ toast('சேமிக்க முடியல, மறுபடி முயற்சி பண்ணுங்க'); }
+  };
+}
+
+function delCat(id){
+  const n = Object.values(STATE.reminders).filter(r => r.categoryId===id).length;
+  if(n){ toast('இந்த வகைல '+n+' நினைவூட்டல் இருக்கு — முதல்ல அத மாத்துங்க'); return; }
+  openSheet('<div class="sheet-title">🗑️ நீக்கவா?<button class="x">✕</button></div>'+
+    '<div class="hint" style="margin-bottom:14px;">"'+esc(cname(catOf(id)))+'" வகை நீங்கிடும்.</div>'+
+    '<button class="btn btn-danger" id="cdYes">ஆமா, நீக்கு</button>'+
+    '<button class="btn btn-ghost" id="cdNo">வேணாம்</button>');
+  $('cdNo').onclick = openCats;
+  $('cdYes').onclick = async () => {
+    try{ await R('categories/'+id).remove(); openCats(); toast('நீக்கியாச்சு'); }
+    catch(e){ toast('நீக்க முடியல'); }
+  };
+}
+
+/* ============================================================
+   SHARE / EXPORT
+   ============================================================ */
+function co(){ return STATE.config.companyName || CONFIG.defaultCompany; }
+function waOpen(txt){ window.open('https://wa.me/?text='+encodeURIComponent(txt), '_blank'); }
+
+function shareOne(r){
+  let t = '🔔 ' + co() + '\n\n';
+  t += (r.cat.emoji||'📌') + ' ' + r.title + '\n';
+  t += tr('தேதி: ') + fmtDate(r.due) + '\n';
+  t += tr('நிலை: ') + tr(daysText(r.due)) + '\n';
+  if(r.amount) t += tr('தொகை: ') + money(r.amount) + '\n';
+  if(r.refNo)  t += tr('எண்: ') + r.refNo + '\n';
+  waOpen(t);
+}
+function shareMonth(){
+  const now = new Date(); const y = now.getFullYear(), m = now.getMonth();
+  const list = activeReminders().filter(r => {
+    const d = new Date(r.due);
+    return (d.getFullYear()===y && d.getMonth()===m) || r.dl < 0;
+  });
+  let t = '🔔 ' + co() + '\n' + MONS()[m] + ' ' + y + tr(' — கட்ட வேண்டியது') + '\n';
+  t += '━━━━━━━━━━━━━━━\n';
+  if(!list.length) t += tr('இந்த மாசம் ஒண்ணும் பாக்கி இல்ல ✅') + '\n';
+  let tot = 0;
+  list.forEach(r => {
+    t += (r.cat.emoji||'📌') + ' ' + r.title + '\n';
+    t += '   ' + fmtShort(r.due) + ' · ' + tr(daysText(r.due));
+    if(r.amount){ t += ' · ' + money(r.amount); tot += Number(r.amount); }
+    t += '\n';
+  });
+  t += '━━━━━━━━━━━━━━━\n';
+  if(tot) t += tr('மொத்தம்: ') + money(tot) + '\n';
+  waOpen(t);
+}
+function shareAll(){
+  const list = activeReminders();
+  let t = '🔔 ' + co() + tr(' — முழு பட்டியல்') + '\n━━━━━━━━━━━━━━━\n';
+  let tot = 0;
+  list.forEach(r => {
+    t += (r.cat.emoji||'📌') + ' ' + r.title + ' — ' + fmtDate(r.due);
+    if(r.amount){ t += ' · ' + money(r.amount); tot += Number(r.amount); }
+    t += '\n';
+  });
+  t += '━━━━━━━━━━━━━━━\n' + tr('மொத்தம் ') + list.length + ' ' + tr('நினைவூட்டல்');
+  if(tot) t += ' · ' + money(tot);
+  waOpen(t);
+}
+
+/* .ics — phone-oda sondha calendar/alarm-a use pannradhu */
+function icsDate(ts){ const d=new Date(ts);
+  return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'); }
+function downloadIcs(list){
+  const RULE = {monthly:'MONTHLY;INTERVAL=1', quarterly:'MONTHLY;INTERVAL=3',
+    halfyearly:'MONTHLY;INTERVAL=6', yearly:'YEARLY;INTERVAL=1',
+    '2yearly':'YEARLY;INTERVAL=2', '5yearly':'YEARLY;INTERVAL=5'};
+  let s = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//RemindMe//TA//EN\r\nCALSCALE:GREGORIAN\r\n';
+  list.forEach(r => {
+    const start = icsDate(r.due);
+    const end   = icsDate(r.due + DAY);
+    s += 'BEGIN:VEVENT\r\n';
+    s += 'UID:' + r.id + '@remindme\r\n';
+    s += 'DTSTAMP:' + icsDate(Date.now()) + 'T000000Z\r\n';
+    s += 'DTSTART;VALUE=DATE:' + start + '\r\n';
+    s += 'DTEND;VALUE=DATE:' + end + '\r\n';
+    s += 'SUMMARY:' + String(r.title).replace(/[,;\\]/g, ' ') +
+         (r.amount ? ' - ' + CONFIG.currency + r.amount : '') + '\r\n';
+    if(r.notes) s += 'DESCRIPTION:' + String(r.notes).replace(/[,;\\\r\n]/g,' ') + '\r\n';
+    if(RULE[r.repeat]) s += 'RRULE:FREQ=' + RULE[r.repeat] + '\r\n';
+    (r.alerts || [0]).forEach(d => {
+      s += 'BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:' +
+           String(r.title).replace(/[,;\\]/g,' ') + '\r\n';
+      s += 'TRIGGER:' + (d > 0 ? ('-P' + d + 'D') : '-PT0S') + '\r\nEND:VALARM\r\n';
+    });
+    s += 'END:VEVENT\r\n';
+  });
+  s += 'END:VCALENDAR\r\n';
+  const blob = new Blob([s], {type:'text/calendar;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'remindme.ics';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  toast('Calendar file download ஆச்சு — திறந்து Add பண்ணுங்க');
+}
+
+/* ============================================================
+   IN-APP FULLSCREEN ALARM
+   (background/system alarm = Phase 2 APK. இது app திறந்தா மட்டும்.)
+   ============================================================ */
+function alarmDueList(){
+  return activeReminders().filter(r => {
+    if(r.dl < 0) return r.nagOverdue ? true : (r.dl >= -7);
+    const al = r.alerts || [0];
+    return al.indexOf(r.dl) >= 0;
+  });
+}
+function refreshAlarm(){
+  if(!STATE.unlocked) return;
+  if($('langScreen').classList.contains('on')) return;
+  if(STATE.config.alarmOn === false) return;
+  const k = 'remindme_alarm_' + ymd(todayStart());
+  if(localStorage.getItem(k)) return;
+  const list = alarmDueList();
+  if(!list.length) return;
+  const already = $('alarm').classList.contains('on');
+
+  const over = list.filter(r => r.dl < 0).length;
+  $('alarmHead').textContent = over ? 'தாண்டிப்போச்சு!' : 'இன்னிக்கு கவனிக்கணும்';
+  $('alarmSub').textContent = list.length + ' விஷயம் இருக்கு';
+  $('alarmList').innerHTML = list.slice(0,6).map(r =>
+    '<div class="card" style="background:#3D1414;border-color:#7A2020;padding:11px;">'+
+    '<b style="font-size:14.5px;">'+esc(r.cat.emoji)+' '+esc(r.title)+'</b>'+
+    '<div style="font-size:12.5px;color:#FFC9C9;margin-top:2px;">'+
+      fmtDate(r.due)+' · '+daysText(r.due)+
+      (r.amount ? ' · '+money(r.amount) : '')+'</div></div>').join('');
+  translateTree($('alarm'));
+  $('alarm').classList.add('on');
+  if(!already){
+    playAlarm();
+    if(navigator.vibrate) navigator.vibrate([600,200,600,200,600]);
+  }
+  $('alarmOk').onclick = () => {
+    localStorage.setItem(k, '1');
+    stopAlarm();
+    $('alarm').classList.remove('on');
+    STATE.tab = 'list'; STATE.listTab = over ? 'overdue' : 'upcoming';
+    syncNav(); render();
+  };
+}
+
+/* WebAudio-la alarm tone — file venaam, offline-lum velai seyyum */
+let _ac = null, _loop = null;
+function playAlarm(){
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    _ac = _ac || new AC();
+    if(_ac.state === 'suspended') _ac.resume();
+    const beep = () => {
+      const o = _ac.createOscillator(), g = _ac.createGain();
+      o.type = 'square'; o.frequency.value = 880;
+      g.gain.setValueAtTime(0.0001, _ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.25, _ac.currentTime + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, _ac.currentTime + 0.35);
+      o.connect(g); g.connect(_ac.destination);
+      o.start(); o.stop(_ac.currentTime + 0.4);
+    };
+    beep();
+    clearInterval(_loop);
+    _loop = setInterval(beep, 900);
+    setTimeout(stopAlarm, 20000);
+  }catch(e){}
+}
+function stopAlarm(){ clearInterval(_loop); _loop = null; }
+
+/* ============================================================
+   SETTINGS
+   ============================================================ */
+function openSettings(){
+  const c = STATE.config;
+  let h = '<div class="sheet-title">⚙️ அமைப்புகள்<button class="x">✕</button></div>';
+  h += '<label class="fl">நிறுவனம் / பேரு</label>'+
+    '<input class="in" id="sCo" value="'+esc(c.companyName||CONFIG.defaultCompany)+'">';
+  h += '<label class="fl">போன் நம்பர்</label>'+
+    '<input class="in" id="sPhone" inputmode="tel" value="'+esc(c.phone||'')+'">';
+  h += '<label class="fl">மொழி</label><div class="chips" id="sLang">'+
+    [['ta','தமிழ்'],['en','English'],['both','தமிழ் + English']].map(x =>
+      '<button type="button" class="chip '+(LANG===x[0]?'on':'')+'" data-lg="'+x[0]+'">'+x[1]+'</button>'
+    ).join('')+'</div>';
+  h += '<button class="btn btn-primary" id="sSave" style="margin-top:16px;">சேமி</button>';
+
+  h += '<div class="divider"></div>';
+  h += '<button class="btn btn-ghost" id="sCats">🗂️ வகைகளை நிர்வகி</button>';
+  h += '<button class="btn btn-ghost" id="sPin">🔒 PIN மாற்று</button>';
+  h += '<button class="btn btn-ghost" id="sIcs">📅 எல்லாத்தையும் Phone Calendar-ல சேர்</button>';
+  h += '<button class="btn btn-ghost" id="sAlarm">'+
+       (c.alarmOn === false ? '🔕 திறக்கும்போது எச்சரிக்கை — OFF' : '🔔 திறக்கும்போது எச்சரிக்கை — ON')+'</button>';
+
+  h += '<div class="divider"></div>';
+  h += '<div class="card"><b style="font-size:14px;">📵 Notification வரலையா?</b>'+
+    '<div class="hint" style="line-height:1.8;margin-top:6px;">'+
+    'Xiaomi, Oppo, Vivo, Realme போன்ல battery saver notification-ஐ நிறுத்திடும். '+
+    'Settings → Apps → RemindMe → Battery → "கட்டுப்பாடு இல்ல" (Unrestricted) '+
+    'ன்னு போட்டு, Autostart-ஐ ON பண்ணுங்க.</div></div>';
+
+  h += '<div class="card"><b style="font-size:14px;">📱 Home screen-ல வைக்க</b>'+
+    '<div class="hint" style="margin-top:6px;">Chrome menu (⋮) → "Add to Home screen"</div></div>';
+
+  const used = usedCount(), lim = limitOf();
+  h += '<div class="card" style="text-align:center;">'+
+    '<div style="font-size:13px;color:var(--muted);">பயன்படுத்தியது</div>'+
+    '<div style="font-size:20px;font-weight:700;">'+used+' / '+(lim===Infinity?'∞':lim)+'</div></div>';
+
+  h += '<div class="hint" style="text-align:center;margin-top:10px;">RemindMe · build '+
+    esc(document.querySelector('meta[name=app-build]').content)+
+    (DEMO_ID ? ' · demo: '+esc(DEMO_ID) : '')+'</div>';
+
+  openSheet(h, true);
+  $('sSave').onclick = async () => {
+    try{
+      await R('config').update({
+        companyName: $('sCo').value.trim() || CONFIG.defaultCompany,
+        phone: $('sPhone').value.trim()
+      });
+      toast('சேமிச்சாச்சு'); closeSheet();
+    }catch(e){ toast('சேமிக்க முடியல, மறுபடி முயற்சி பண்ணுங்க'); }
+  };
+  $('sLang').querySelectorAll('.chip').forEach(b => b.onclick = async () => {
+    closeSheet(); await setLang(b.dataset.lg); toast('சேமிச்சாச்சு');
+  });
+  $('sCats').onclick  = openCats;
+  $('sPin').onclick   = openPinChange;
+  $('sIcs').onclick   = () => downloadIcs(activeReminders());
+  $('sAlarm').onclick = async () => {
+    try{ await R('config').update({alarmOn: !(c.alarmOn === false)}); openSettings(); }
+    catch(e){ toast('மாத்த முடியல'); }
+  };
+}
+
+function openPinChange(){
+  openSheet('<div class="sheet-title">🔒 PIN மாற்று<button class="x">✕</button></div>'+
+    '<label class="fl">புது PIN (4 எண்)</label>'+
+    '<input class="in" id="np1" inputmode="numeric" maxlength="4" type="password">'+
+    '<label class="fl">மறுபடி போடுங்க</label>'+
+    '<input class="in" id="np2" inputmode="numeric" maxlength="4" type="password">'+
+    '<button class="btn btn-primary" id="npSave" style="margin-top:16px;">PIN மாற்று</button>');
+  $('npSave').onclick = async () => {
+    const a = $('np1').value.trim(), b = $('np2').value.trim();
+    if(!/^\d{4}$/.test(a)){ toast('4 எண் போடுங்க'); return; }
+    if(a !== b){ toast('ரெண்டும் ஒண்ணா இல்ல'); return; }
+    try{
+      const h = await sha256(a);
+      await R('config').update({pinHash: h});
+      STATE.pinHash = h;
+      toast('PIN மாறிடுச்சு'); closeSheet();
+    }catch(e){ toast('மாத்த முடியல, மறுபடி முயற்சி பண்ணுங்க'); }
+  };
+}
+
+function openSearch(){
+  openSheet('<div class="sheet-title">🔍 தேடு<button class="x">✕</button></div>'+
+    '<input class="in" id="sq" placeholder="பேரு, வகை, எண்..." value="'+esc(STATE.search)+'">'+
+    '<button class="btn btn-primary" id="sqGo" style="margin-top:14px;">தேடு</button>'+
+    '<button class="btn btn-ghost" id="sqClr">அழி</button>');
+  setTimeout(() => $('sq') && $('sq').focus(), 220);
+  $('sqGo').onclick = () => {
+    STATE.search = $('sq').value.trim();
+    STATE.tab = 'list'; STATE.listTab = 'all';
+    syncNav(); closeSheet(); render();
+  };
+  $('sqClr').onclick = () => { STATE.search=''; closeSheet(); render(); };
+}
+
+/* ============================================================
+   BINDINGS + INIT
+   ============================================================ */
+function bindView(){
+  const app = $('app');
+  app.querySelectorAll('[data-open]').forEach(el =>
+    el.onclick = () => openDetail(el.dataset.open));
+  app.querySelectorAll('[data-lt]').forEach(el =>
+    el.onclick = () => {
+      STATE.listTab = el.dataset.lt;
+      if(el.dataset.go === 'list' || STATE.tab !== 'list'){ STATE.tab = 'list'; syncNav(); }
+      render();
+    });
+  app.querySelectorAll('[data-go="add"]').forEach(el => el.onclick = () => openForm(null));
+  app.querySelectorAll('[data-cal]').forEach(el =>
+    el.onclick = () => { STATE.calMonth += (+el.dataset.cal); render(); });
+  app.querySelectorAll('[data-day]').forEach(el => el.onclick = () => {
+    const y = Math.floor(STATE.calMonth/12), m = STATE.calMonth%12;
+    const ts = new Date(y, m, +el.dataset.day).getTime();
+    const items = activeReminders().filter(r => r.due === ts);
+    if(!items.length) return;
+    if(items.length === 1){ openDetail(items[0].id); return; }
+    openSheet('<div class="sheet-title">'+fmtDate(ts)+'<button class="x">✕</button></div>'+
+      items.map(r => reminderRow(r)).join(''));
+    $('sheet').querySelectorAll('[data-open]').forEach(x =>
+      x.onclick = () => openDetail(x.dataset.open));
+  });
+  if($('clrSearch')) $('clrSearch').onclick = () => { STATE.search=''; render(); };
+  if($('waMonth'))   $('waMonth').onclick   = shareMonth;
+  if($('waAll'))     $('waAll').onclick     = shareAll;
+  if($('icsAll'))    $('icsAll').onclick    = () => downloadIcs(activeReminders());
+}
+
+function syncNav(){
+  document.querySelectorAll('.nav button').forEach(b =>
+    b.classList.toggle('on', b.dataset.tab === STATE.tab));
+}
+document.querySelectorAll('.nav button').forEach(b => b.onclick = () => {
+  const t = b.dataset.tab;
+  if(t === 'add'){ openForm(null); return; }
+  STATE.tab = t; syncNav(); render();
+});
+$('btnSettings').onclick = openSettings;
+$('btnSearch').onclick   = openSearch;
+$('btnLang').onclick     = openLangSheet;
+
+/* ---------------- boot ---------------- */
+(async function init(){
+  buildKeypad(); drawDots();
+  try{
+    await seedIfEmpty();
+  }catch(e){
+    if(window.__autoCheckPush) window.__autoCheckPush('seed', e.message, e.stack);
+  }
+  watch();
+  /* pinHash இன்னும் வரலைனா null-ஆ இருக்கும் — checkPin அதை handle பண்ணும் */
+  R('config/lang').once('value').then(s => {
+    const v = s.val();
+    if(v === 'ta' || v === 'en' || v === 'both'){ if(v !== LANG){ LANG = v; } translateAll(); return; }
+    showLangPicker();
+  }).catch(() => {});
+
+  R('config/pinHash').once('value').then(s => {
+    if(STATE.pinHash === null) STATE.pinHash = s.exists() ? s.val() : '';
+  }).catch(() => { if(STATE.pinHash === null) STATE.pinHash = ''; });
+
+  translateAll();
+  STATE.ready = true;
+  /* நாள் மாறினா alarm திரும்ப check ஆகணும் */
+  setInterval(() => { if(STATE.unlocked) refreshAlarm(); }, 60*60*1000);
+})();
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+</script>
+</body>
+</html>
