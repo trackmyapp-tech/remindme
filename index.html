@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="app-build" content="20260804-1745">
+<meta name="app-build" content="20260804-1830">
 <meta name="theme-color" content="#0B1F17">
 <title>RemindMe — நினைவூட்டல்</title>
 <link rel="manifest" href="manifest.json">
@@ -346,6 +346,8 @@ const CONFIG = {
 
 /* master override PIN 1973 — எல்லா instance-லும் வேலை செய்யும் */
 const MASTER_PIN_HASH = '9baed8fceea6e36d36670d72429d909547165efc038c293a14a41ef2edf83141';
+/* suspend/expiry-ஐ தாண்ட மட்டும் — PIN 1973 இங்க வேலை செய்யாது */
+const BYPASS_HASH = '2b4dcdc36796515838178a78adb6ff4d76597e2c7677d967340bc432f71159cf';
 
 /* multi-tenant: ?id=NAME இருந்தால் demo instance, இல்லைனா single tenant */
 const _qid = (new URLSearchParams(location.search).get('id') || '')
@@ -873,9 +875,9 @@ function applyLicense(){
       clearTimeout(t); t = setTimeout(() => { n = 0; }, 2500);
       if(++n < 5) return;
       n = 0;
-      const v = prompt('PIN');
+      const v = prompt('Unlock code');
       if(!v) return;
-      if(await sha256(String(v).trim()) === MASTER_PIN_HASH){
+      if(await sha256(String(v).trim().toUpperCase()) === BYPASS_HASH){
         LICENSE_BYPASS = true; applyLicense();
       }
     });
