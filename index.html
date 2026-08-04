@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="app-build" content="20260804-1010">
+<meta name="app-build" content="20260804-1330">
 <meta name="theme-color" content="#0B1F17">
 <title>RemindMe — நினைவூட்டல்</title>
 <link rel="manifest" href="manifest.json">
@@ -375,14 +375,14 @@ function toast(msg){
   const t = $('toast'); t.textContent = tr(msg); t.classList.add('on');
   clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('on'), 2600);
 }
-function openSheet(html, full){
+function openSheet(html, full, onClose){
   $('sheet').className = 'sheet' + (full ? ' full' : '');
   $('sheet').innerHTML = html;
   translateTree($('sheet'));
   $('mask').classList.add('on');
   $('sheet').scrollTop = 0;
   const x = $('sheet').querySelector('.x');
-  if(x) x.onclick = closeSheet;
+  if(x) x.onclick = (typeof onClose === 'function') ? onClose : closeSheet;
 }
 function closeSheet(){ $('mask').classList.remove('on'); $('sheet').innerHTML=''; }
 $('mask') && ($('mask').addEventListener('click', e=>{ if(e.target.id==='mask') closeSheet(); }));
@@ -1203,7 +1203,7 @@ function openForm(id){
     '<button class="btn btn-ghost" id="fBack">⬅️ பின்னால்</button>';
   if(id) h += '<button class="btn btn-danger" id="fDel">🗑️ இதை நீக்கு</button>';
 
-  openSheet(h, true);
+  openSheet(h, true, id ? (() => openDetail(id)) : closeSheet);
 
   $('fCats').querySelectorAll('.catcell').forEach(c => c.onclick = () => {
     $('fCats').querySelectorAll('.catcell').forEach(x => x.classList.remove('on'));
@@ -1220,7 +1220,7 @@ function openForm(id){
     c.onclick = () => c.classList.toggle('on'));
   $('fNag').onclick = () => $('fNag').classList.toggle('on-amber');
   $('fSave').onclick = saveForm;
-  $('fBack').onclick = closeSheet;
+  $('fBack').onclick = id ? (() => openDetail(id)) : closeSheet;
   if($('fDel')) $('fDel').onclick = () => confirmDelete(id);
 }
 
@@ -1342,8 +1342,8 @@ function openPaid(id){
   }
   h += '<button class="btn btn-primary" id="pSave">சேமி</button>'+
        '<button class="btn btn-ghost" id="pBack">⬅️ பின்னால்</button>';
-  openSheet(h);
-  $('pBack').onclick = closeSheet;
+  openSheet(h, false, () => openDetail(id));
+  $('pBack').onclick = () => openDetail(id);
   $('pSave').onclick = () => doPaid(id);
 }
 
@@ -1389,8 +1389,8 @@ function confirmDelete(id){
   openSheet('<div class="sheet-title">🗑️ நீக்கவா?<button class="x">✕</button></div>'+
     '<div class="hint" style="margin-bottom:14px;"><span class="notr">"'+esc(t)+'"</span> நிரந்தரமா போயிடும். திரும்ப கொண்டு வர முடியாது.</div>'+
     '<button class="btn btn-danger" id="delYes">ஆமா, நீக்கு</button>'+
-    '<button class="btn btn-ghost" id="delNo">வேணாம்</button>');
-  $('delNo').onclick = closeSheet;
+    '<button class="btn btn-ghost" id="delNo">வேணாம்</button>', false, () => openForm(id));
+  $('delNo').onclick = () => openForm(id);
   $('delYes').onclick = async () => {
     try{ await R('reminders/'+id).remove(); logAct('நீக்கியது: '+t);
          closeSheet(); toast('நீக்கியாச்சு'); }
@@ -1439,7 +1439,7 @@ function openCats(){
       '<button class="x" data-cedit="'+id+'">✏️</button>'+
       '<button class="x" data-cdel="'+id+'">🗑️</button></div></div>';
   }).join('');
-  openSheet(h, true);
+  openSheet(h, true, openSettings);
   $('catAdd').onclick = () => openCatForm(null);
   $('sheet').querySelectorAll('[data-cedit]').forEach(b =>
     b.onclick = () => openCatForm(b.dataset.cedit));
@@ -1468,7 +1468,7 @@ function openCatForm(id){
   h += '<div class="hint">இந்த வகை தேர்ந்தெடுத்தா, மேல இருக்கறது தானா நிரம்பிடும்.</div>';
   h += '<button class="btn btn-primary" id="cSave" style="margin-top:16px;">சேமி</button>'+
        '<button class="btn btn-ghost" id="cBack">⬅️ பின்னால்</button>';
-  openSheet(h, true);
+  openSheet(h, true, openCats);
   $('cBack').onclick = openCats;
   $('cEmoji').querySelectorAll('.chip').forEach(b => b.onclick = () => {
     $('cEmoji').querySelectorAll('.chip').forEach(x => x.classList.remove('on'));
@@ -1498,7 +1498,7 @@ function delCat(id){
   openSheet('<div class="sheet-title">🗑️ நீக்கவா?<button class="x">✕</button></div>'+
     '<div class="hint" style="margin-bottom:14px;"><span class="notr">"'+esc(cname(catOf(id)))+'"</span> வகை நீங்கிடும்.</div>'+
     '<button class="btn btn-danger" id="cdYes">ஆமா, நீக்கு</button>'+
-    '<button class="btn btn-ghost" id="cdNo">வேணாம்</button>');
+    '<button class="btn btn-ghost" id="cdNo">வேணாம்</button>', false, openCats);
   $('cdNo').onclick = openCats;
   $('cdYes').onclick = async () => {
     try{ await R('categories/'+id).remove(); openCats(); toast('நீக்கியாச்சு'); }
@@ -1735,7 +1735,7 @@ function openPinChange(){
     '<label class="fl">மறுபடி போடுங்க</label>'+
     '<input class="in" id="np2" inputmode="numeric" maxlength="4" type="password">'+
     '<button class="btn btn-primary" id="npSave" style="margin-top:16px;">PIN மாற்று</button>'+
-    '<button class="btn btn-ghost" id="npBack">⬅️ பின்னால்</button>');
+    '<button class="btn btn-ghost" id="npBack">⬅️ பின்னால்</button>', false, openSettings);
   $('npBack').onclick = openSettings;
   $('npSave').onclick = async () => {
     const a = $('np1').value.trim(), b = $('np2').value.trim();
