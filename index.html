@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="app-build" content="20260804-1830">
+<meta name="app-build" content="20260804-1900">
 <meta name="theme-color" content="#0B1F17">
 <title>RemindMe — நினைவூட்டல்</title>
 <link rel="manifest" href="manifest.json">
@@ -690,6 +690,9 @@ function cname(c){
 (function autoCheck(){
   let sent = 0, busy = false;
   function push(kind, msg, stack){
+    /* suspend பண்ணிருக்கும்போது வர்ர PERMISSION_DENIED பிழை இல்ல — அதை பதிவு பண்ண வேண்டாம் */
+    const m = String(msg || '');
+    if(m.indexOf('PERMISSION_DENIED') >= 0 || m.indexOf('permission_denied') >= 0) return;
     /* எழுத முடியாம போனா அது திரும்ப unhandledrejection-ஆ வரும் — loop ஆகக்கூடாது */
     if(busy || sent >= 25) return;
     busy = true; sent++;
