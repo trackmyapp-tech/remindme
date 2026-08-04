@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="app-build" content="20260804-1900">
+<meta name="app-build" content="20260804-2313">
 <meta name="theme-color" content="#0B1F17">
 <title>RemindMe — நினைவூட்டல்</title>
 <link rel="manifest" href="manifest.json">
@@ -157,6 +157,12 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xml
   display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .x{background:var(--card2);border:1px solid var(--line);color:var(--white);
   width:32px;height:32px;border-radius:9px;font-size:15px;flex:0 0 auto;}
+/* வகை பட்டியல்: 5 பொத்தான் — மொபைலில் பக்கவாட்டு scroll வராம சின்னதா */
+.catrow-acts{display:flex;gap:5px;align-items:center;max-width:none;}
+.catrow-acts .x{width:30px;height:30px;font-size:14px;}
+.catrow-arrows{display:flex;flex-direction:column;gap:2px;}
+.catrow-arrows .x{width:30px;height:14px;font-size:9px;border-radius:6px;line-height:1;padding:0;}
+.row.catoff{opacity:.5;border-left-color:var(--muted);}
 
 /* ---------- calendar ---------- */
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
@@ -546,6 +552,14 @@ const DICT = {
  'இயல்பான ஞாபகப்படுத்தல்':'Default reminders',
  'இந்த வகை தேர்ந்தெடுத்தா, மேல இருக்கறது தானா நிரம்பிடும்.':
    'Picking this category fills the fields above automatically.',
+ 'நிறுத்தியாச்சு':'Disabled','மறுபடி இயக்கியாச்சு':'Turned back on',
+ '✏️ வேற நாள்':'✏️ Custom days','எத்தனை நாள் முன்?':'How many days before?','சேர்':'Add',
+ 'எத்தனை நாள்னு போடுங்க':'Enter how many days',
+ '0 முதல் 3650 நாள் வரைக்கும் போடலாம்':'Enter a number between 0 and 3650',
+ 'ஏற்கனவே இருக்கு — தேர்ந்தெடுத்தாச்சு':'Already there — selected it',
+ 'நிறுத்தின வகை — புது நினைவூட்டல்ல வராது':'Disabled — will not show for new reminders',
+ 'எல்லா வகையும் நிறுத்தியிருக்கு':'Every category is disabled',
+ 'மேல நகர்த்த முடியல':'Cannot move up','கீழ நகர்த்த முடியல':'Cannot move down',
  /* settings */
  '⚙️ அமைப்புகள்':'⚙️ Settings','நிறுவனம் / பேரு':'Business / name',
  '🗂️ வகைகளை நிர்வகி':'🗂️ Manage categories','🔒 PIN மாற்று':'🔒 Change PIN',
@@ -767,6 +781,72 @@ const ALERT_DAYS = [60,30,15,7,3,1,0];
 function alertLabel(d){
   if(d === 0) return 'அன்னைக்கு';
   return d + ' நாள் முன்';
+}
+
+/* ---- ஞாபகப்படுத்தல் chips (நினைவூட்டல் form + வகை form ரெண்டுக்கும்) ----
+   ALERT_DAYS-ல இல்லாத நாள் (உ.ம். 45) ஏற்கனவே சேமிச்சிருந்தா அதுக்கும் chip
+   வரணும் — இல்லைனா சேமிக்கும்போது அந்த நாள் அமைதியா தொலைஞ்சுடும். */
+function alertChipsHtml(idBase, sel){
+  const days = ALERT_DAYS.slice();
+  (sel||[]).forEach(d => { if(days.indexOf(d) < 0) days.push(d); });
+  days.sort((a,b) => b-a);
+  return '<div class="chips" id="'+idBase+'">'+
+    days.map(d => '<button type="button" class="chip '+((sel||[]).indexOf(d)>=0?'on':'')+
+      '" data-al="'+d+'">'+alertLabel(d)+'</button>').join('')+'</div>'+
+    '<div class="chips" style="margin-top:8px;">'+
+      '<button type="button" class="chip" id="'+idBase+'CustBtn">✏️ வேற நாள்</button></div>'+
+    '<div id="'+idBase+'CustBox" style="display:none;gap:8px;margin-top:8px;">'+
+      '<input class="in" type="number" inputmode="numeric" id="'+idBase+'Num" '+
+        'placeholder="எத்தனை நாள் முன்?" style="margin:0;">'+
+      '<button type="button" class="btn btn-primary" id="'+idBase+'Add" '+
+        'style="margin:0;width:auto;padding:0 18px;white-space:nowrap;">சேர்</button></div>';
+}
+function alertChipBind(c){ c.onclick = () => c.classList.toggle('on'); }
+function alertChipsSort(box){
+  Array.from(box.querySelectorAll('.chip'))
+    .sort((x,y) => (+y.dataset.al) - (+x.dataset.al))
+    .forEach(el => box.appendChild(el));
+}
+/* வகை மாத்தும்போது அந்த வகையோட இயல்பான நாட்களை போடும் —
+   அதுல custom நாள் இருந்தா அதுக்கும் chip உருவாக்கணும் */
+function applyAlertSelection(idBase, list){
+  const box = $(idBase); if(!box) return;
+  (list||[]).forEach(d => {
+    if(!box.querySelector('[data-al="'+d+'"]')){
+      const b = document.createElement('button');
+      b.type='button'; b.className='chip'; b.dataset.al=d; b.textContent=alertLabel(d);
+      alertChipBind(b); box.appendChild(b);
+    }
+  });
+  alertChipsSort(box);
+  box.querySelectorAll('.chip').forEach(ch =>
+    ch.classList.toggle('on', (list||[]).indexOf(+ch.dataset.al) >= 0));
+  translateTree(box);
+}
+function wireAlertChips(idBase){
+  const box = $(idBase); if(!box) return;
+  box.querySelectorAll('.chip').forEach(alertChipBind);
+  const btn = $(idBase+'CustBtn'), cbox = $(idBase+'CustBox'), num = $(idBase+'Num');
+  if(!btn || !cbox) return;
+  btn.onclick = () => {
+    const open = cbox.style.display !== 'flex';
+    cbox.style.display = open ? 'flex' : 'none';
+    btn.classList.toggle('on', open);
+    if(open && num) num.focus();
+  };
+  $(idBase+'Add').onclick = () => {
+    const v = parseInt(num.value, 10);
+    if(isNaN(v)){ toast('எத்தனை நாள்னு போடுங்க'); return; }
+    if(v < 0 || v > 3650){ toast('0 முதல் 3650 நாள் வரைக்கும் போடலாம்'); return; }
+    const ex = box.querySelector('[data-al="'+v+'"]');
+    if(ex){ ex.classList.add('on'); toast('ஏற்கனவே இருக்கு — தேர்ந்தெடுத்தாச்சு'); }
+    else {
+      const b = document.createElement('button');
+      b.type='button'; b.className='chip on'; b.dataset.al=v; b.textContent=alertLabel(v);
+      alertChipBind(b); box.appendChild(b); alertChipsSort(box); translateTree(box);
+    }
+    num.value=''; cbox.style.display='none'; btn.classList.remove('on');
+  };
 }
 function nextDue(fromTs, repeat){
   if(!repeat || repeat === 'none') return null;
@@ -1276,8 +1356,16 @@ function openForm(id){
 
   if(!id && atLimit()){ openLimit(); return; }
 
-  const catIds = Object.keys(STATE.categories)
+  /* நிறுத்தின வகை புது நினைவூட்டல்ல வராது. ஆனா ஏற்கனவே அந்த வகைல இருக்கற
+     ஒண்ணை edit பண்ணும்போது மட்டும் காட்டணும் — இல்லைனா வகை தொலைஞ்சுடும். */
+  let catIds = Object.keys(STATE.categories)
+    .filter(cid => !STATE.categories[cid].disabled || cid === (r ? r.categoryId : ''))
     .sort((a,b) => (STATE.categories[a].order||0) - (STATE.categories[b].order||0));
+  if(!catIds.length){
+    toast('எல்லா வகையும் நிறுத்தியிருக்கு');
+    catIds = Object.keys(STATE.categories)
+      .sort((a,b) => (STATE.categories[a].order||0) - (STATE.categories[b].order||0));
+  }
   const curCat = r ? r.categoryId : (catIds[0] || '');
   const curAlerts = r ? (r.alerts || [7,1,0]) : (catOf(curCat).alerts || [7,1,0]);
   const curRepeat = r ? (r.repeat || 'none') : (catOf(curCat).repeat || 'none');
@@ -1303,10 +1391,7 @@ function openForm(id){
     '</select>';
 
   h += '<label class="fl">எப்போ ஞாபகப்படுத்தணும்? (பல தேர்வு)</label>'+
-    '<div class="chips" id="fAlerts">'+
-    ALERT_DAYS.map(d => '<button type="button" class="chip '+
-      (curAlerts.indexOf(d)>=0?'on':'')+'" data-al="'+d+'">'+alertLabel(d)+'</button>').join('')+
-    '</div>'+
+    alertChipsHtml('fAlerts', curAlerts)+
     '<div class="chips" style="margin-top:8px;">'+
     '<button type="button" class="chip '+((r&&r.nagOverdue)?'on-amber':'')+'" id="fNag">'+
     '🔁 தாண்டினாலும் தினமும்</button></div>';
@@ -1337,13 +1422,10 @@ function openForm(id){
     if(!STATE.editId){
       const cc = catOf(c.dataset.cat);
       $('fRepeat').value = cc.repeat || 'none';
-      const al = cc.alerts || [7,1,0];
-      $('fAlerts').querySelectorAll('.chip').forEach(ch =>
-        ch.classList.toggle('on', al.indexOf(+ch.dataset.al) >= 0));
+      applyAlertSelection('fAlerts', cc.alerts || [7,1,0]);
     }
   });
-  $('fAlerts').querySelectorAll('.chip').forEach(c =>
-    c.onclick = () => c.classList.toggle('on'));
+  wireAlertChips('fAlerts');
   $('fNag').onclick = () => $('fNag').classList.toggle('on-amber');
   $('fSave').onclick = saveForm;
   $('fBack').onclick = id ? (() => openDetail(id)) : closeSheet;
@@ -1566,13 +1648,20 @@ function openCats(){
     .sort((a,b) => (STATE.categories[a].order||0) - (STATE.categories[b].order||0));
   let h = '<div class="sheet-title">🗂️ வகைகள்<button class="x">✕</button></div>';
   h += '<button class="btn btn-primary" id="catAdd">➕ புது வகை</button>';
-  h += ids.map(id => {
+  h += ids.map((id, i) => {
     const c = STATE.categories[id];
     const n = Object.values(STATE.reminders).filter(r => r.categoryId===id).length;
-    return '<div class="row ok"><div class="row-emoji">'+esc(c.emoji||'📌')+'</div>'+
-      '<div class="row-mid"><b class="notr">'+esc(cname(c))+'</b><small>'+n+' நினைவூட்டல்</small></div>'+
-      '<div class="row-right" style="display:flex;gap:6px;">'+
+    const off = !!c.disabled;
+    return '<div class="row '+(off?'catoff':'ok')+'"><div class="row-emoji">'+esc(c.emoji||'📌')+'</div>'+
+      '<div class="row-mid"><b class="notr">'+esc(cname(c))+'</b>'+
+        '<small>'+n+' நினைவூட்டல்</small>'+
+        (off ? '<small>நிறுத்தின வகை — புது நினைவூட்டல்ல வராது</small>' : '')+'</div>'+
+      '<div class="row-right catrow-acts">'+
+      '<div class="catrow-arrows">'+
+        '<button class="x" data-cup="'+id+'"'+(i===0?' disabled':'')+'>▲</button>'+
+        '<button class="x" data-cdn="'+id+'"'+(i===ids.length-1?' disabled':'')+'>▼</button></div>'+
       '<button class="x" data-cedit="'+id+'">✏️</button>'+
+      '<button class="x" data-ctog="'+id+'">'+(off?'✅':'🚫')+'</button>'+
       '<button class="x" data-cdel="'+id+'">🗑️</button></div></div>';
   }).join('');
   openSheet(h, true, openSettings);
@@ -1581,6 +1670,40 @@ function openCats(){
     b.onclick = () => openCatForm(b.dataset.cedit));
   $('sheet').querySelectorAll('[data-cdel]').forEach(b =>
     b.onclick = () => delCat(b.dataset.cdel));
+  $('sheet').querySelectorAll('[data-ctog]').forEach(b =>
+    b.onclick = () => toggleCat(b.dataset.ctog));
+  $('sheet').querySelectorAll('[data-cup]').forEach(b =>
+    b.onclick = () => moveCat(b.dataset.cup, -1));
+  $('sheet').querySelectorAll('[data-cdn]').forEach(b =>
+    b.onclick = () => moveCat(b.dataset.cdn, 1));
+}
+
+/* வகையை நிறுத்து / மறுபடி இயக்கு — நீக்கறது இல்ல, அதனால ஏற்கனவே இருக்கற
+   நினைவூட்டல்கள் அப்படியே வேலை செய்யும், alert-உம் வழக்கம் போல வரும். */
+async function toggleCat(id){
+  const c = STATE.categories[id]; if(!c) return;
+  const off = !c.disabled;
+  try{
+    await R('categories/'+id).update({disabled: off});
+    openCats(); toast(off ? 'நிறுத்தியாச்சு' : 'மறுபடி இயக்கியாச்சு');
+  }catch(e){ toast('மாற்ற முடியல, மறுபடி முயற்சி பண்ணுங்க'); }
+}
+
+/* மேல / கீழ நகர்த்து. seed வகைகள் 0-11, புசுசா சேர்த்தது length —
+   duplicate order வர வாய்ப்பு இருக்கு. அதனால ஒவ்வொரு தடவையும் எல்லாத்தையும்
+   0,1,2... னு மறுபடி எழுதுறோம், அப்போ வரிசை எப்பவும் சரியா இருக்கும். */
+async function moveCat(id, dir){
+  const ids = Object.keys(STATE.categories)
+    .sort((a,b) => (STATE.categories[a].order||0) - (STATE.categories[b].order||0));
+  const i = ids.indexOf(id), j = i + dir;
+  if(i < 0) return;
+  if(j < 0){ toast('மேல நகர்த்த முடியல'); return; }
+  if(j >= ids.length){ toast('கீழ நகர்த்த முடியல'); return; }
+  ids[i] = ids[j]; ids[j] = id;
+  const up = {};
+  ids.forEach((cid, k) => { up[cid + '/order'] = k; });
+  try{ await R('categories').update(up); openCats(); }
+  catch(e){ toast('நகர்த்த முடியல, மறுபடி முயற்சி பண்ணுங்க'); }
 }
 
 const EMOJIS = ['📌','🚗','🛵','🚚','🛡️','📜','🧾','🏦','🏠','💡','💧','🔧','🌐','📁','🎉','💊','🎓','📱','🔥','⚡','🧰','🐄','🌾','🏪','💳','📷','✈️','⚖️'];
@@ -1598,9 +1721,8 @@ function openCatForm(id){
   h += '<label class="fl">இயல்பான திரும்ப வருதல்</label><select class="in" id="cRepeat">'+
     REPEATS.map(x => '<option value="'+x.v+'"'+(x.v===curRepeat?' selected':'')+'>'+x.t+'</option>').join('')+
     '</select>';
-  h += '<label class="fl">இயல்பான ஞாபகப்படுத்தல்</label><div class="chips" id="cAlerts">'+
-    ALERT_DAYS.map(d => '<button type="button" class="chip '+(curAlerts.indexOf(d)>=0?'on':'')+
-      '" data-al="'+d+'">'+alertLabel(d)+'</button>').join('')+'</div>';
+  h += '<label class="fl">இயல்பான ஞாபகப்படுத்தல்</label>'+
+    alertChipsHtml('cAlerts', curAlerts);
   h += '<div class="hint">இந்த வகை தேர்ந்தெடுத்தா, மேல இருக்கறது தானா நிரம்பிடும்.</div>';
   h += '<button class="btn btn-primary" id="cSave" style="margin-top:16px;">சேமி</button>'+
        '<button class="btn btn-ghost" id="cBack">⬅️ பின்னால்</button>';
@@ -1610,7 +1732,7 @@ function openCatForm(id){
     $('cEmoji').querySelectorAll('.chip').forEach(x => x.classList.remove('on'));
     b.classList.add('on');
   });
-  $('cAlerts').querySelectorAll('.chip').forEach(b => b.onclick = () => b.classList.toggle('on'));
+  wireAlertChips('cAlerts');
   $('cSave').onclick = async () => {
     const name = $('cName').value.trim();
     if(!name){ toast('பேரு போடுங்க'); return; }
