@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="app-build" content="20260804-0915">
+<meta name="app-build" content="20260804-1010">
 <meta name="theme-color" content="#0B1F17">
 <title>RemindMe — நினைவூட்டல்</title>
 <link rel="manifest" href="manifest.json">
@@ -28,7 +28,7 @@
 html,body{margin:0;padding:0;background:var(--bg);color:var(--white);
   font-family:'Poppins','Noto Sans Tamil',system-ui,sans-serif;
   font-size:15px;line-height:1.55;overflow-x:hidden;width:100%;}
-body{padding-bottom:96px;}
+body{padding-bottom:112px;}
 button,input,select,textarea{font-family:inherit;font-size:15px;}
 button{cursor:pointer;}
 a{color:var(--green);}
@@ -70,8 +70,8 @@ a{color:var(--green);}
   padding:12px 8px;text-align:center;min-width:0;}
 .stat b{display:block;font-size:17px;font-weight:700;line-height:1.25;
   overflow:hidden;text-overflow:ellipsis;}
-.stat small{display:block;font-size:11px;color:var(--white);margin-top:3px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.stat small{display:block;font-size:10.5px;line-height:1.3;color:var(--white);
+  margin-top:4px;overflow:hidden;white-space:pre-line;}
 .s-green b{color:var(--green);} .s-amber b{color:var(--amber);} .s-red b{color:var(--red);}
 
 /* ---------- reminder row ---------- */
@@ -86,11 +86,11 @@ a{color:var(--green);}
 .row-mid{flex:1;min-width:0;}
 .row-mid b{display:block;font-size:15px;font-weight:600;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.row-mid small{display:block;font-size:12.5px;color:var(--muted);margin-top:1px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.row-mid small{display:block;font-size:12px;line-height:1.35;color:var(--muted);
+  margin-top:2px;overflow:hidden;white-space:pre-line;}
 .row-right{text-align:right;flex:0 0 auto;max-width:40%;}
 .row-right b{display:block;font-size:14.5px;font-weight:600;}
-.row-right small{display:block;font-size:11.5px;margin-top:1px;}
+.row-right small{display:block;font-size:11px;line-height:1.3;margin-top:2px;white-space:pre-line;}
 .t-red{color:var(--red)!important;} .t-amber{color:var(--amber)!important;}
 .t-green{color:var(--green)!important;} .t-muted{color:var(--muted)!important;}
 
@@ -159,7 +159,8 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xml
 
 /* ---------- calendar ---------- */
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
-.cal-h{text-align:center;font-size:11px;color:var(--muted);padding:5px 0;}
+.cal-h{text-align:center;font-size:10px;line-height:1.25;color:var(--muted);
+  padding:4px 0;white-space:pre-line;}
 .cal-d{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;
   justify-content:center;border-radius:9px;font-size:13px;position:relative;}
 .cal-d.has{background:var(--card2);}
@@ -172,8 +173,8 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xml
   padding:7px 0 calc(7px + env(safe-area-inset-bottom));}
 .nav-in{max-width:560px;margin:0 auto;display:flex;width:100%;}
 .nav button{flex:1;background:none;border:none;color:var(--muted);
-  font-size:10.5px;padding:5px 2px;display:flex;flex-direction:column;
-  align-items:center;gap:3px;min-width:0;}
+  font-size:9.5px;line-height:1.25;padding:5px 1px;display:flex;flex-direction:column;
+  align-items:center;gap:2px;min-width:0;white-space:pre-line;text-align:center;}
 .nav button i{font-size:19px;font-style:normal;}
 .nav button.on{color:var(--green);}
 
@@ -396,7 +397,25 @@ const MON_EN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 const WD_TA  = ['ஞா','தி','செ','பு','வி','வெ','ச'];
 const WD_EN  = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 function MONS(){ return LANG === 'en' ? MON_EN : MON_TA; }
-function WDS(){  return LANG === 'en' ? WD_EN  : WD_TA;  }
+function WDS(){
+  if(LANG === 'en')   return WD_EN;
+  if(LANG === 'both') return WD_TA.map((t,i) => t + '\n' + WD_EN[i]);
+  return WD_TA;
+}
+/* ஒரு குறிப்பிட்ட மொழியில் தேதி */
+function fmtShortL(ts, lg){ const d=new Date(ts);
+  return d.getDate()+' '+(lg==='en'?MON_EN:MON_TA)[d.getMonth()]; }
+function fmtDateL(ts, lg){ const d=new Date(ts);
+  return d.getDate()+' '+(lg==='en'?MON_EN:MON_TA)[d.getMonth()]+' '+d.getFullYear(); }
+/* இரண்டு மொழியும் — அகலம் இருக்கற இடத்துக்கு */
+function fmtDateB(ts){ if(!ts) return '—';
+  return LANG==='both' ? fmtDateL(ts,'ta')+' · '+fmtDateL(ts,'en') : fmtDate(ts); }
+function monLabel(m, y){
+  return LANG==='both' ? MON_TA[m]+' · '+MON_EN[m]+' '+y
+       : LANG==='en'   ? MON_EN[m]+' '+y : MON_TA[m]+' '+y;
+}
+/* WhatsApp / clipboard — ஒரு மொழி மட்டும் */
+function tr1(s){ return LANG === 'en' ? tr(s) : s; }
 
 const DICT = {
  /* nav + shell */
@@ -409,7 +428,7 @@ const DICT = {
  'மொத்த பாக்கி':'Total due','லேட் ஆனது':'Paid late','பயன்படுத்தியது':'Used',
  /* sections */
  'தாண்டிப்போச்சு':'Overdue','அடுத்து வர்றது':'Coming up','வகை வாரியா':'By category',
- 'பழைய கட்டணங்கள்':'Payment history',' மாசம் (':' (',
+ 'பழைய கட்டணங்கள்':'Payment history',
  /* list tabs */
  'வரப்போறது':'Upcoming','திரும்ப வரும்':'Repeating','கட்டினது':'Paid','எல்லாம்':'All',
  /* day text */
@@ -517,10 +536,11 @@ const DICT = {
 const DICT_KEYS = Object.keys(DICT).sort((a,b) => b.length - a.length);
 
 /* string-level translate */
-function tr(s, compact){
+function tr(s, mode){
   if(LANG === 'ta' || !s) return s;
   const t = String(s).trim();
-  if(LANG === 'both' && !compact){
+  const JOIN = (mode === 'stack') ? '\n' : ' · ';
+  if(LANG === 'both'){
     let key = t;
     if(!DICT[key]){
       const m = t.match(/^([^\u0B80-\u0BFFA-Za-z0-9]+)(.+)$/);
@@ -529,23 +549,22 @@ function tr(s, compact){
     const en = DICT[key];
     if(en){
       const en2 = en.replace(/^[^\u0B80-\u0BFFA-Za-z0-9]+/, '');
-      return en2 ? String(s).replace(t, t + ' · ' + en2) : s;
+      return en2 ? String(s).replace(t, t + JOIN + en2) : s;
     }
     let sub = t;
     for(const k of DICT_KEYS) if(sub.indexOf(k) >= 0) sub = sub.split(k).join(DICT[k]);
-    sub = sub.replace(/(^|[^0-9])1 days\b/g, '$11 day').trim();
-    return (sub && sub !== t) ? String(s).replace(t, t + ' · ' + sub) : s;
+    sub = sub.replace(/(^|[^0-9])1 ([A-Za-z]+)s\b/g, '$11 $2').trim();
+    return (sub && sub !== t) ? String(s).replace(t, t + JOIN + sub) : s;
   }
-  if(LANG === 'both') return s;          /* compact + both  ->  Tamil only */
   let out = String(s);
   for(const k of DICT_KEYS) if(out.indexOf(k) >= 0) out = out.split(k).join(DICT[k]);
-  return out.replace(/(^|[^0-9])1 days\b/g, '$11 day');
+  return out.replace(/(^|[^0-9])1 ([A-Za-z]+)s\b/g, '$11 $2');
 }
-/* இடம் குறைவான இடங்கள் — nav, chip — ஒரு மொழி மட்டும் */
-const COMPACT_SEL = '.nav, .tabs, .catcell, .cal, .stat small, .row-right, .row-mid small';
-function isCompact(node){
+/* இடம் குறைவான இடங்கள் — ரெண்டு மொழியும் ரெண்டு வரியில் */
+const STACK_SEL = '.nav, .stat small, .row-right small, .cal-h';
+function isStack(node){
   const el = node.parentElement;
-  return !!(el && el.closest && el.closest(COMPACT_SEL));
+  return !!(el && el.closest && el.closest(STACK_SEL));
 }
 /* .notr = customer-oda sondha text — இதை மொழிமாற்றம் பண்ணக்கூடாது */
 function noTranslate(node){
@@ -565,7 +584,7 @@ function translateTree(root){
   }
   jobs.forEach(n => {
     if(!_orig.has(n)) _orig.set(n, n.nodeValue);
-    const v = tr(_orig.get(n), isCompact(n));
+    const v = tr(_orig.get(n), isStack(n) ? 'stack' : null);
     if(v !== n.nodeValue) n.nodeValue = v;
   });
   if(!root.querySelectorAll) return;
@@ -584,11 +603,16 @@ function cnameHtml(c){
   if(LANG === 'both' && c.nameEn) return esc(c.name)+'<em>'+esc(c.nameEn)+'</em>';
   return esc(cname(c));
 }
-function cname(c, compact){
+function cnameL(c, lg){
+  if(!c) return '';
+  if(lg === 'en') return c.nameEn || c.name || '';
+  return c.name || '';
+}
+function cname(c){
   if(!c) return '';
   if(!c.nameEn) return c.name || '';
-  if(LANG === 'en') return c.nameEn;
-  if(LANG === 'both' && !compact) return c.name + ' · ' + c.nameEn;
+  if(LANG === 'en')   return c.nameEn;
+  if(LANG === 'both') return c.name + ' · ' + c.nameEn;
   return c.name;
 }
 
@@ -907,7 +931,12 @@ function reminderRow(r){
   return '<div class="row '+rowClass(r)+'" data-open="'+r.id+'">'+
     '<div class="row-emoji">'+esc(r.cat.emoji || '📌')+'</div>'+
     '<div class="row-mid"><b class="notr">'+esc(r.title)+'</b>'+
-      '<small><span class="notr">'+esc(cname(r.cat, true))+'</span> · '+fmtShort(r.due)+'</small></div>'+
+      '<small class="notr">'+esc(
+        LANG === 'both'
+          ? cnameL(r.cat,'ta')+' · '+fmtShortL(r.due,'ta')+'\n'+
+            cnameL(r.cat,'en')+' · '+fmtShortL(r.due,'en')
+          : cname(r.cat)+' · '+fmtShort(r.due)
+      )+'</small></div>'+
     '<div class="row-right">'+
       (amt ? '<b>'+amt+'</b>' : '')+
       '<small class="'+dueColor(r)+'">'+daysText(r.due)+'</small>'+
@@ -966,12 +995,19 @@ function viewList(){
     let cur = '';
     ps.forEach(p => {
       const d = new Date(p.paidTs);
-      const key = MONS()[d.getMonth()]+' '+d.getFullYear();
+      const key = monLabel(d.getMonth(), d.getFullYear());
       if(key !== cur){ cur = key; h += '<div class="sec-title">'+key+'</div>'; }
       h += '<div class="row ok">'+
         '<div class="row-emoji">'+esc(p.emoji || '✅')+'</div>'+
         '<div class="row-mid"><b class="notr">'+esc(p.title || '—')+'</b>'+
-          '<small>கட்ட வேண்டியது '+fmtShort(parseYmd(p.dueWas))+' · கட்டினது '+fmtShort(p.paidTs)+'</small></div>'+
+          '<small class="notr">'+esc(
+            LANG === 'both'
+              ? 'கட்ட வேண்டியது '+fmtShortL(parseYmd(p.dueWas),'ta')+' · கட்டினது '+fmtShortL(p.paidTs,'ta')+'\n'+
+                'Due '+fmtShortL(parseYmd(p.dueWas),'en')+' · paid '+fmtShortL(p.paidTs,'en')
+              : (LANG === 'en'
+                  ? 'Due '+fmtShortL(parseYmd(p.dueWas),'en')+' · paid '+fmtShortL(p.paidTs,'en')
+                  : 'கட்ட வேண்டியது '+fmtShortL(parseYmd(p.dueWas),'ta')+' · கட்டினது '+fmtShortL(p.paidTs,'ta'))
+          )+'</small></div>'+
         '<div class="row-right"><b class="t-green">'+(p.amount ? money(p.amount) : '✅')+'</b>'+
           (p.late > 0 ? '<small class="t-red">'+p.late+' நாள் லேட்</small>'
                       : '<small class="t-muted">சரியான நேரம்</small>')+
@@ -992,11 +1028,11 @@ function viewList(){
     let cur = '';
     list.forEach(r => {
       const d = new Date(r.due);
-      const key = MONS()[d.getMonth()]+' '+d.getFullYear();
+      const key = monLabel(d.getMonth(), d.getFullYear());
       if(key !== cur){
         cur = key;
         const tot = list.filter(x => { const y=new Date(x.due);
-          return MONS()[y.getMonth()]+' '+y.getFullYear() === key; })
+          return monLabel(y.getMonth(), y.getFullYear()) === key; })
           .reduce((s,x) => s + Number(x.amount||0), 0);
         h += '<div class="sec-title" style="display:flex;justify-content:space-between;">'+
              '<span>'+key+'</span><span>'+(tot ? money(tot) : '')+'</span></div>';
@@ -1033,7 +1069,7 @@ function viewCal(){
   let h = '<div class="card" style="margin-top:14px;">'+
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'+
       '<button class="x" data-cal="-1">‹</button>'+
-      '<b style="font-size:15.5px;">'+MONS()[m]+' '+y+'</b>'+
+      '<b style="font-size:15.5px;" class="notr">'+esc(monLabel(m, y))+'</b>'+
       '<button class="x" data-cal="1">›</button>'+
     '</div><div class="cal">';
   WDS().forEach(d => h += '<div class="cal-h">'+d+'</div>');
@@ -1057,7 +1093,7 @@ function viewCal(){
     const d = new Date(r.due);
     return d.getFullYear()===y && d.getMonth()===m;
   });
-  h += '<div class="sec-title">'+MONS()[m]+' மாசம் ('+sel.length+')</div>';
+  h += '<div class="sec-title"><span class="notr">'+esc(monLabel(m,y))+' ('+sel.length+')</span></div>';
   h += sel.length ? sel.map(r => reminderRow(r)).join('')
      : '<div class="empty"><i>📅</i>இந்த மாசம் ஒண்ணும் இல்ல.</div>';
   return h;
@@ -1094,7 +1130,7 @@ function viewReport(){
   h += '<div class="sec-title">வகை வாரியா</div>';
   h += cats.length ? cats.map(c =>
     '<div class="row ok"><div class="row-emoji">'+esc(c.cat.emoji||'📌')+'</div>'+
-    '<div class="row-mid"><b class="notr">'+esc(cname(c.cat, true))+'</b><small>'+c.n+' நினைவூட்டல்</small></div>'+
+    '<div class="row-mid"><b class="notr">'+esc(cname(c.cat))+'</b><small>'+c.n+' நினைவூட்டல்</small></div>'+
     '<div class="row-right"><b>'+(c.amt?money(c.amt):'—')+'</b></div></div>').join('')
     : '<div class="empty"><i>📊</i>தரவு இல்ல.</div>';
 
@@ -1242,7 +1278,7 @@ function openDetail(id){
 
   h += '<div class="card" style="text-align:center;">'+
     '<div style="font-size:12.5px;color:var(--muted);">கட்ட வேண்டிய தேதி</div>'+
-    '<div style="font-size:20px;font-weight:700;margin:3px 0;">'+fmtDate(r.due)+'</div>'+
+    '<div style="font-size:20px;font-weight:700;margin:3px 0;" class="notr">'+esc(fmtDateB(r.due))+'</div>'+
     '<div class="'+dueColor(r)+'" style="font-size:14px;font-weight:600;">'+daysText(r.due)+'</div>'+
     (r.amount ? '<div style="font-size:23px;font-weight:700;margin-top:8px;">'+money(r.amount)+'</div>' : '')+
   '</div>';
@@ -1271,8 +1307,8 @@ function openDetail(id){
     h += '<div class="sec-title">பழைய கட்டணங்கள் ('+hist.length+')</div>';
     h += hist.map(p =>
       '<div class="row ok"><div class="row-emoji">🧾</div>'+
-      '<div class="row-mid"><b>'+fmtDate(p.paidTs)+'</b>'+
-      '<small>கட்ட வேண்டியது '+fmtShort(parseYmd(p.dueWas))+'</small></div>'+
+      '<div class="row-mid"><b class="notr">'+esc(fmtDateB(p.paidTs))+'</b>'+
+      '<small>கட்ட வேண்டியது <span class="notr">'+esc(fmtShortL(parseYmd(p.dueWas), LANG==='en'?'en':'ta'))+'</span></small></div>'+
       '<div class="row-right"><b class="t-green">'+(p.amount?money(p.amount):'✅')+'</b>'+
       (p.late>0 ? '<small class="t-red">'+p.late+' நாள் லேட்</small>' : '')+
       '</div></div>').join('');
@@ -1299,7 +1335,7 @@ function openPaid(id){
   h += '<label class="fl">குறிப்பு</label><input class="in" id="pNote" placeholder="விருப்பம்">';
   if(nxt){
     h += '<div class="card" style="margin-top:14px;background:#0E3B22;border-color:var(--green);">'+
-      '<div style="font-size:13px;">அடுத்த தேதி தானா <b>'+fmtDate(nxt)+'</b> ஆ மாறிடும்.</div></div>';
+      '<div style="font-size:13px;">அடுத்த தேதி தானா <b class="notr">'+esc(fmtDateB(nxt))+'</b> ஆ மாறிடும்.</div></div>';
   } else {
     h += '<div class="card" style="margin-top:14px;">'+
       '<div style="font-size:13px;color:var(--muted);">இது திரும்ப வராது — கட்டியாச்சுன்னா பட்டியல்ல இருந்து போயிடும்.</div></div>';
@@ -1335,7 +1371,7 @@ async function doPaid(id){
     const nxt = nextDue(due, raw.repeat);
     if(nxt){
       await R('reminders/'+id).update({dueDate: ymd(nxt), lastPaidAt: paidTs});
-      toast('சேமிச்சாச்சு — அடுத்தது '+fmtDate(nxt));
+      toast('சேமிச்சாச்சு — அடுத்தது '+fmtDateL(nxt, LANG==='en'?'en':'ta'));
     } else {
       await R('reminders/'+id).update({status:'done', lastPaidAt: paidTs});
       toast('முடிஞ்சது ✅');
@@ -1479,10 +1515,10 @@ function waOpen(txt){ window.open('https://wa.me/?text='+encodeURIComponent(txt)
 function shareOne(r){
   let t = '🔔 ' + co() + '\n\n';
   t += (r.cat.emoji||'📌') + ' ' + r.title + '\n';
-  t += tr('தேதி: ') + fmtDate(r.due) + '\n';
-  t += tr('நிலை: ') + tr(daysText(r.due)) + '\n';
-  if(r.amount) t += tr('தொகை: ') + money(r.amount) + '\n';
-  if(r.refNo)  t += tr('எண்: ') + r.refNo + '\n';
+  t += tr1('தேதி: ') + fmtDate(r.due) + '\n';
+  t += tr1('நிலை: ') + tr1(daysText(r.due)) + '\n';
+  if(r.amount) t += tr1('தொகை: ') + money(r.amount) + '\n';
+  if(r.refNo)  t += tr1('எண்: ') + r.refNo + '\n';
   waOpen(t);
 }
 function shareMonth(){
@@ -1491,30 +1527,30 @@ function shareMonth(){
     const d = new Date(r.due);
     return (d.getFullYear()===y && d.getMonth()===m) || r.dl < 0;
   });
-  let t = '🔔 ' + co() + '\n' + MONS()[m] + ' ' + y + tr(' — கட்ட வேண்டியது') + '\n';
+  let t = '🔔 ' + co() + '\n' + MONS()[m] + ' ' + y + tr1(' — கட்ட வேண்டியது') + '\n';
   t += '━━━━━━━━━━━━━━━\n';
-  if(!list.length) t += tr('இந்த மாசம் ஒண்ணும் பாக்கி இல்ல ✅') + '\n';
+  if(!list.length) t += tr1('இந்த மாசம் ஒண்ணும் பாக்கி இல்ல ✅') + '\n';
   let tot = 0;
   list.forEach(r => {
     t += (r.cat.emoji||'📌') + ' ' + r.title + '\n';
-    t += '   ' + fmtShort(r.due) + ' · ' + tr(daysText(r.due));
+    t += '   ' + fmtShort(r.due) + ' · ' + tr1(daysText(r.due));
     if(r.amount){ t += ' · ' + money(r.amount); tot += Number(r.amount); }
     t += '\n';
   });
   t += '━━━━━━━━━━━━━━━\n';
-  if(tot) t += tr('மொத்தம்: ') + money(tot) + '\n';
+  if(tot) t += tr1('மொத்தம்: ') + money(tot) + '\n';
   waOpen(t);
 }
 function shareAll(){
   const list = activeReminders();
-  let t = '🔔 ' + co() + tr(' — முழு பட்டியல்') + '\n━━━━━━━━━━━━━━━\n';
+  let t = '🔔 ' + co() + tr1(' — முழு பட்டியல்') + '\n━━━━━━━━━━━━━━━\n';
   let tot = 0;
   list.forEach(r => {
     t += (r.cat.emoji||'📌') + ' ' + r.title + ' — ' + fmtDate(r.due);
     if(r.amount){ t += ' · ' + money(r.amount); tot += Number(r.amount); }
     t += '\n';
   });
-  t += '━━━━━━━━━━━━━━━\n' + tr('மொத்தம் ') + list.length + ' ' + tr('நினைவூட்டல்');
+  t += '━━━━━━━━━━━━━━━\n' + tr1('மொத்தம் ') + list.length + ' ' + tr1('நினைவூட்டல்');
   if(tot) t += ' · ' + money(tot);
   waOpen(t);
 }
@@ -1750,7 +1786,7 @@ function bindView(){
     const items = activeReminders().filter(r => r.due === ts);
     if(!items.length) return;
     if(items.length === 1){ openDetail(items[0].id); return; }
-    openSheet('<div class="sheet-title">'+fmtDate(ts)+'<button class="x">✕</button></div>'+
+    openSheet('<div class="sheet-title"><span class="notr">'+esc(fmtDateB(ts))+'</span><button class="x">✕</button></div>'+
       items.map(r => reminderRow(r)).join(''));
     $('sheet').querySelectorAll('[data-open]').forEach(x =>
       x.onclick = () => openDetail(x.dataset.open));
