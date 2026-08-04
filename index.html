@@ -194,6 +194,17 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xml
 .divider{height:1px;background:var(--line);margin:14px 0;}
 .pre{white-space:pre-line;}
 
+/* licence blocked screen */
+#blocked{position:fixed;inset:0;background:var(--bg);z-index:440;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:28px;text-align:center;}
+#blocked.on{display:flex;}
+#blocked .bi{font-size:54px;margin-bottom:14px;}
+#blocked h2{font-size:20px;margin:0 0 10px;line-height:1.4;}
+#blocked p{color:var(--muted);font-size:14.5px;line-height:1.8;margin:0 0 22px;
+  max-width:400px;white-space:pre-line;}
+#blockTap{margin-top:26px;font-size:11px;color:#1B3A2C;padding:12px 26px;}
+
 /* first-run language chooser */
 #langScreen{position:fixed;inset:0;background:var(--bg);z-index:420;
   display:none;flex-direction:column;align-items:center;justify-content:center;padding:26px;}
@@ -231,6 +242,15 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xml
 </style>
 </head>
 <body>
+
+<!-- LICENCE BLOCKED -->
+<div id="blocked">
+  <div class="bi">🔒</div>
+  <h2 id="blockTitle"></h2>
+  <p id="blockMsg"></p>
+  <a id="blockWa" class="btn btn-primary" style="max-width:320px;text-decoration:none;display:none;"></a>
+  <div id="blockTap">· · ·</div>
+</div>
 
 <!-- FIRST RUN : LANGUAGE -->
 <div id="langScreen">
@@ -366,7 +386,7 @@ function showOffline(){
 /* ---------------- state ---------------- */
 const STATE = {
   ready:false, tab:'home', listTab:'upcoming',
-  config:{}, categories:{}, reminders:{}, payments:{},
+  config:{}, categories:{}, reminders:{}, payments:{}, license:{},
   calMonth:new Date().getFullYear()*12 + new Date().getMonth(),
   search:'', editId:null, pinHash:null, unlocked:false
 };
@@ -535,6 +555,10 @@ const DICT = {
  '"கட்டுப்பாடு இல்ல" (Unrestricted) ':'"Unrestricted" ',
  'ன்னு போட்டு, Autostart-ஐ ON பண்ணுங்க.':' and turn Autostart ON.',
  '📱 Home screen-ல வைக்க':'📱 Add to home screen','மொழி':'Language',
+ 'இந்த app தற்காலிகமா நிறுத்தப்பட்டிருக்கு':'This app is temporarily paused',
+ 'சந்தா முடிஞ்சிடுச்சு':'Your subscription has ended',
+ 'தொடர்பு கொள்ளுங்க':'Please get in touch to continue.',
+ '📲 WhatsApp-ல தொடர்பு கொள்ள':'📲 Contact on WhatsApp',
  /* search */
  '🔍 தேடு':'🔍 Search','தேடு':'Search','அழி':'Clear','பேரு, வகை, எண்...':'Name, category, number...',
  /* reports */
@@ -793,6 +817,7 @@ function watch(){
   R('categories').on('value', s => { STATE.categories = s.val() || {}; render(); });
   R('reminders').on('value',  s => { STATE.reminders  = s.val() || {}; render(); refreshAlarm(); });
   R('payments').on('value',   s => { STATE.payments   = s.val() || {}; render(); });
+  R('license').on('value', s => { STATE.license = s.val() || {}; applyLicense(); });
   R('flashMessage').on('value', s => {
     const v = s.val();
     const on = v && v.on && v.text;
@@ -806,6 +831,53 @@ function applyBrand(){
     (co === 'RemindMe') ? 'Remind<span>Me</span>' : '<span class="notr">'+esc(co)+'</span>';
   $('pinCo').textContent = co;
 }
+
+/* ---------------- LICENCE ----------------
+   panel-ல இருந்து suspend / active days set பண்ணலாம்.
+   master PIN 1973 போட்டா எப்பவும் உள்ள போகலாம். */
+let LICENSE_BYPASS = false;
+function licenseState(){
+  const L = STATE.license || {};
+  if(L.active === false) return {ok:false, why:'suspended'};
+  const exp = Number(L.expiresAt || 0);
+  if(exp > 0 && Date.now() > exp) return {ok:false, why:'expired'};
+  return {ok:true};
+}
+function applyLicense(){
+  const el = $('blocked'); if(!el) return;
+  const s = licenseState();
+  if(s.ok || LICENSE_BYPASS){ el.classList.remove('on'); return; }
+  $('blockTitle').textContent = tr(s.why === 'expired'
+    ? 'சந்தா முடிஞ்சிடுச்சு' : 'இந்த app தற்காலிகமா நிறுத்தப்பட்டிருக்கு');
+  const note = (STATE.license && STATE.license.note) ? STATE.license.note : '';
+  $('blockMsg').textContent = tr('தொடர்பு கொள்ளுங்க') + (note ? '\n\n' + note : '');
+  const ph = String((STATE.config && (STATE.config.ownerPhone || STATE.config.phone)) || '')
+               .replace(/[^0-9]/g, '').slice(-10);
+  const wa = $('blockWa');
+  if(ph.length === 10){
+    wa.style.display = 'block';
+    wa.href = 'https://wa.me/91' + ph + '?text=' + encodeURIComponent('RemindMe');
+    wa.textContent = tr('📲 WhatsApp-ல தொடர்பு கொள்ள');
+  } else { wa.style.display = 'none'; }
+  el.classList.add('on');
+}
+/* மறைவான developer வழி — 5 தடவை தட்டினா master PIN கேட்கும் */
+(function(){
+  let n = 0, t = 0;
+  window.addEventListener('DOMContentLoaded', () => {
+    const b = $('blockTap'); if(!b) return;
+    b.addEventListener('click', async () => {
+      clearTimeout(t); t = setTimeout(() => { n = 0; }, 2500);
+      if(++n < 5) return;
+      n = 0;
+      const v = prompt('PIN');
+      if(!v) return;
+      if(await sha256(String(v).trim()) === MASTER_PIN_HASH){
+        LICENSE_BYPASS = true; applyLicense();
+      }
+    });
+  });
+})();
 
 /* ---------------- PIN ---------------- */
 let pinBuf = '';
@@ -862,7 +934,7 @@ async function setLang(v){
   LANG = v;
   document.documentElement.lang = (v === 'en' ? 'en' : 'ta');
   buildKeypad(); drawDots();
-  render(); translateAll();
+  render(); translateAll(); applyLicense();
   try{ await R('config').update({lang: v}); }
   catch(e){ if(window.__autoCheckPush) window.__autoCheckPush('lang', e.message, e.stack); }
 }
