@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="app-build" content="20260804-1330">
+<meta name="app-build" content="20260804-1405">
 <meta name="theme-color" content="#0B1F17">
 <title>RemindMe — நினைவூட்டல்</title>
 <link rel="manifest" href="manifest.json">
@@ -192,6 +192,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xml
 .pill.a{background:#3B3000;color:var(--amber);}
 .pill.r{background:#3B1414;color:var(--red);}
 .divider{height:1px;background:var(--line);margin:14px 0;}
+.pre{white-space:pre-line;}
 
 /* first-run language chooser */
 #langScreen{position:fixed;inset:0;background:var(--bg);z-index:420;
@@ -416,6 +417,17 @@ function monLabel(m, y){
 }
 /* WhatsApp / clipboard — ஒரு மொழி மட்டும் */
 function tr1(s){ return LANG === 'en' ? tr(s) : s; }
+/* தமிழ் string-ஐ ஆங்கிலமாக்கு (translateTree-க்கு வெளியே கட்டும்போது) */
+function toEn(s){
+  let out = String(s);
+  for(const k of DICT_KEYS) if(out.indexOf(k) >= 0) out = out.split(k).join(DICT[k]);
+  return out.replace(/(^|[^0-9])1 ([A-Za-z]+)s\b/g, '$11 $2');
+}
+function daysTextL(ts, lg){ return lg === 'en' ? toEn(daysText(ts)) : daysText(ts); }
+/* இரண்டு மொழி வரிகளை ஒரே block-ஆ */
+function bi(ta, en){
+  return LANG === 'en' ? en : (LANG === 'both' ? ta + '\n' + en : ta);
+}
 
 const DICT = {
  /* nav + shell */
@@ -1035,7 +1047,7 @@ function viewList(){
           return monLabel(y.getMonth(), y.getFullYear()) === key; })
           .reduce((s,x) => s + Number(x.amount||0), 0);
         h += '<div class="sec-title" style="display:flex;justify-content:space-between;">'+
-             '<span>'+key+'</span><span>'+(tot ? money(tot) : '')+'</span></div>';
+             '<span class="notr">'+esc(key)+'</span><span>'+(tot ? money(tot) : '')+'</span></div>';
       }
       h += reminderRow(r);
     });
@@ -1308,7 +1320,9 @@ function openDetail(id){
     h += hist.map(p =>
       '<div class="row ok"><div class="row-emoji">🧾</div>'+
       '<div class="row-mid"><b class="notr">'+esc(fmtDateB(p.paidTs))+'</b>'+
-      '<small>கட்ட வேண்டியது <span class="notr">'+esc(fmtShortL(parseYmd(p.dueWas), LANG==='en'?'en':'ta'))+'</span></small></div>'+
+      '<small class="notr pre">'+esc(bi(
+        'கட்ட வேண்டியது '+fmtShortL(parseYmd(p.dueWas),'ta'),
+        'Due '+fmtShortL(parseYmd(p.dueWas),'en')))+'</small></div>'+
       '<div class="row-right"><b class="t-green">'+(p.amount?money(p.amount):'✅')+'</b>'+
       (p.late>0 ? '<small class="t-red">'+p.late+' நாள் லேட்</small>' : '')+
       '</div></div>').join('');
@@ -1335,7 +1349,9 @@ function openPaid(id){
   h += '<label class="fl">குறிப்பு</label><input class="in" id="pNote" placeholder="விருப்பம்">';
   if(nxt){
     h += '<div class="card" style="margin-top:14px;background:#0E3B22;border-color:var(--green);">'+
-      '<div style="font-size:13px;">அடுத்த தேதி தானா <b class="notr">'+esc(fmtDateB(nxt))+'</b> ஆ மாறிடும்.</div></div>';
+      '<div class="notr pre" style="font-size:13px;">'+esc(bi(
+        'அடுத்த தேதி தானா '+fmtDateL(nxt,'ta')+' ஆ மாறிடும்.',
+        'The next date automatically becomes '+fmtDateL(nxt,'en')+'.'))+'</div></div>';
   } else {
     h += '<div class="card" style="margin-top:14px;">'+
       '<div style="font-size:13px;color:var(--muted);">இது திரும்ப வராது — கட்டியாச்சுன்னா பட்டியல்ல இருந்து போயிடும்.</div></div>';
@@ -1398,11 +1414,17 @@ function confirmDelete(id){
   };
 }
 
+function numSuffix(n){
+  const a = n % 100, b = n % 10;
+  if(a >= 11 && a <= 13) return 'th';
+  return b === 1 ? 'st' : b === 2 ? 'nd' : b === 3 ? 'rd' : 'th';
+}
 function openLimit(){
   const lim = limitOf();
   openSheet('<div class="sheet-title">🔔 வரம்பு<button class="x">✕</button></div>'+
-    '<div style="font-size:14px;line-height:1.75;margin-bottom:16px;">'+
-    'Free-ல <b>'+lim+'</b> நினைவூட்டல் வரைக்கும் போடலாம். '+(lim+1)+'-வது போடணும்னா Premium-க்கு மாறணும்.'+
+    '<div class="notr pre" style="font-size:14px;line-height:1.75;margin-bottom:16px;">'+esc(bi(
+      'Free-ல '+lim+' நினைவூட்டல் வரைக்கும் போடலாம். '+(lim+1)+'-வது போடணும்னா Premium-க்கு மாறணும்.',
+      'On Free you can add '+lim+' reminders. The '+(lim+1)+numSuffix(lim+1)+' one needs Premium.'))+
     '</div>'+
     '<div class="card"><div style="font-size:13.5px;line-height:1.9;">'+
     '✅ எத்தனை நினைவூட்டல் வேணாலும்<br>'+
@@ -1619,9 +1641,10 @@ function refreshAlarm(){
   $('alarmList').innerHTML = list.slice(0,6).map(r =>
     '<div class="card" style="background:#3D1414;border-color:#7A2020;padding:11px;">'+
     '<b style="font-size:14.5px;" class="notr">'+esc(r.cat.emoji)+' '+esc(r.title)+'</b>'+
-    '<div style="font-size:12.5px;color:#FFC9C9;margin-top:2px;">'+
-      fmtDate(r.due)+' · '+daysText(r.due)+
-      (r.amount ? ' · '+money(r.amount) : '')+'</div></div>').join('');
+    '<div class="notr pre" style="font-size:12.5px;color:#FFC9C9;margin-top:2px;">'+esc(bi(
+        fmtDateL(r.due,'ta')+' · '+daysTextL(r.due,'ta')+(r.amount ? ' · '+money(r.amount) : ''),
+        fmtDateL(r.due,'en')+' · '+daysTextL(r.due,'en')+(r.amount ? ' · '+money(r.amount) : '')
+      ))+'</div></div>').join('');
   translateTree($('alarm'));
   $('alarm').classList.add('on');
   if(!already){
