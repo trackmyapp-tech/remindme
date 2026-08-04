@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="app-build" content="20260804-0800">
+<meta name="app-build" content="20260804-0915">
 <meta name="theme-color" content="#0B1F17">
 <title>RemindMe — நினைவூட்டல்</title>
 <link rel="manifest" href="manifest.json">
@@ -129,7 +129,8 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xml
 .catcell.on{border-color:var(--green);background:#123626;}
 .catcell i{display:block;font-size:23px;font-style:normal;}
 .catcell span{display:block;font-size:11.5px;margin-top:5px;color:var(--muted);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  overflow:hidden;line-height:1.35;}
+.catcell span em{display:block;font-style:normal;font-size:10.5px;opacity:.78;}
 .catcell.on span{color:var(--white);}
 
 /* ---------- tabs ---------- */
@@ -145,11 +146,13 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xml
   display:none;align-items:flex-end;justify-content:center;}
 .mask.on{display:flex;}
 .sheet{background:var(--card);width:100%;max-width:560px;max-height:92vh;
-  overflow-y:auto;border-radius:20px 20px 0 0;padding:18px 16px 30px;
+  overflow-y:auto;border-radius:20px 20px 0 0;padding:0 16px 34px;
   border-top:1px solid var(--line);animation:up .2s ease;}
 .sheet.full{max-height:100vh;height:100vh;border-radius:0;}
 @keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
-.sheet-title{font-size:17px;font-weight:700;margin-bottom:14px;
+.sheet-title{font-size:17px;font-weight:700;
+  position:sticky;top:0;z-index:6;background:var(--card);
+  margin:0 0 8px;padding:16px 0 11px;border-bottom:1px solid var(--line);
   display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .x{background:var(--card2);border:1px solid var(--line);color:var(--white);
   width:32px;height:32px;border-radius:9px;font-size:15px;flex:0 0 auto;}
@@ -430,7 +433,7 @@ const DICT = {
  'யாரை தொடர்பு கொள்ளணும்':'Who to contact','பேரு':'Name','போன் நம்பர்':'Phone number',
  'குறிப்பு':'Notes','சேமி':'Save','🗑️ இதை நீக்கு':'🗑️ Delete this',
  'உ.ம். வண்டி இன்சூரன்ஸ்':'e.g. Vehicle insurance',
- '➕ புது நினைவூட்டல்':'➕ New reminder','✏️ மாற்று':'✏️ Edit',
+ '➕ புது நினைவூட்டல்':'➕ New reminder','✏️ மாற்று':'✏️ Edit','⬅️ பின்னால்':'Back','மாற்று':'Update',
  /* detail */
  'கட்ட வேண்டிய தேதி':'Due date','வகை:':'Category:','திரும்ப:':'Repeats:',
  'ஞாபகப்படுத்தல்:':'Reminders:','தினமும்':'Daily','குறிப்பு எண்:':'Ref no.:',
@@ -524,9 +527,14 @@ function tr(s, compact){
       if(m && DICT[m[2]]) key = m[2];
     }
     const en = DICT[key];
-    if(!en) return s;
-    const en2 = en.replace(/^[^\u0B80-\u0BFFA-Za-z0-9]+/, '');
-    return en2 ? String(s).replace(t, t + ' · ' + en2) : s;
+    if(en){
+      const en2 = en.replace(/^[^\u0B80-\u0BFFA-Za-z0-9]+/, '');
+      return en2 ? String(s).replace(t, t + ' · ' + en2) : s;
+    }
+    let sub = t;
+    for(const k of DICT_KEYS) if(sub.indexOf(k) >= 0) sub = sub.split(k).join(DICT[k]);
+    sub = sub.replace(/(^|[^0-9])1 days\b/g, '$11 day').trim();
+    return (sub && sub !== t) ? String(s).replace(t, t + ' · ' + sub) : s;
   }
   if(LANG === 'both') return s;          /* compact + both  ->  Tamil only */
   let out = String(s);
@@ -534,10 +542,15 @@ function tr(s, compact){
   return out.replace(/(^|[^0-9])1 days\b/g, '$11 day');
 }
 /* இடம் குறைவான இடங்கள் — nav, chip — ஒரு மொழி மட்டும் */
-const COMPACT_SEL = '.nav, .tabs, .chip, .catcell, .cal, .stat small, .row-right, .row-mid small';
+const COMPACT_SEL = '.nav, .tabs, .catcell, .cal, .stat small, .row-right, .row-mid small';
 function isCompact(node){
   const el = node.parentElement;
   return !!(el && el.closest && el.closest(COMPACT_SEL));
+}
+/* .notr = customer-oda sondha text — இதை மொழிமாற்றம் பண்ணக்கூடாது */
+function noTranslate(node){
+  const el = node.parentElement;
+  return !!(el && el.closest && el.closest('.notr'));
 }
 /* walk a subtree and translate text nodes + placeholders */
 const _orig = new WeakMap();
@@ -547,6 +560,7 @@ function translateTree(root){
   const jobs = [];
   let n;
   while((n = w.nextNode())){
+    if(noTranslate(n)) continue;
     if(_orig.has(n) || /[\u0B80-\u0BFF]/.test(n.nodeValue)) jobs.push(n);
   }
   jobs.forEach(n => {
@@ -565,6 +579,11 @@ function translateAll(){
   translateTree(document.body);
 }
 /* category name in the chosen language */
+function cnameHtml(c){
+  if(!c) return '';
+  if(LANG === 'both' && c.nameEn) return esc(c.name)+'<em>'+esc(c.nameEn)+'</em>';
+  return esc(cname(c));
+}
 function cname(c, compact){
   if(!c) return '';
   if(!c.nameEn) return c.name || '';
@@ -714,7 +733,7 @@ function watch(){
 function applyBrand(){
   const co = STATE.config.companyName || CONFIG.defaultCompany;
   document.querySelector('.brand').innerHTML =
-    (co === 'RemindMe') ? 'Remind<span>Me</span>' : esc(co);
+    (co === 'RemindMe') ? 'Remind<span>Me</span>' : '<span class="notr">'+esc(co)+'</span>';
   $('pinCo').textContent = co;
 }
 
@@ -887,8 +906,8 @@ function reminderRow(r){
   const amt = r.amount ? money(r.amount) : '';
   return '<div class="row '+rowClass(r)+'" data-open="'+r.id+'">'+
     '<div class="row-emoji">'+esc(r.cat.emoji || '📌')+'</div>'+
-    '<div class="row-mid"><b>'+esc(r.title)+'</b>'+
-      '<small>'+esc(cname(r.cat, true))+' · '+fmtShort(r.due)+'</small></div>'+
+    '<div class="row-mid"><b class="notr">'+esc(r.title)+'</b>'+
+      '<small><span class="notr">'+esc(cname(r.cat, true))+'</span> · '+fmtShort(r.due)+'</small></div>'+
     '<div class="row-right">'+
       (amt ? '<b>'+amt+'</b>' : '')+
       '<small class="'+dueColor(r)+'">'+daysText(r.due)+'</small>'+
@@ -951,7 +970,7 @@ function viewList(){
       if(key !== cur){ cur = key; h += '<div class="sec-title">'+key+'</div>'; }
       h += '<div class="row ok">'+
         '<div class="row-emoji">'+esc(p.emoji || '✅')+'</div>'+
-        '<div class="row-mid"><b>'+esc(p.title || '—')+'</b>'+
+        '<div class="row-mid"><b class="notr">'+esc(p.title || '—')+'</b>'+
           '<small>கட்ட வேண்டியது '+fmtShort(parseYmd(p.dueWas))+' · கட்டினது '+fmtShort(p.paidTs)+'</small></div>'+
         '<div class="row-right"><b class="t-green">'+(p.amount ? money(p.amount) : '✅')+'</b>'+
           (p.late > 0 ? '<small class="t-red">'+p.late+' நாள் லேட்</small>'
@@ -1075,7 +1094,7 @@ function viewReport(){
   h += '<div class="sec-title">வகை வாரியா</div>';
   h += cats.length ? cats.map(c =>
     '<div class="row ok"><div class="row-emoji">'+esc(c.cat.emoji||'📌')+'</div>'+
-    '<div class="row-mid"><b>'+esc(cname(c.cat, true))+'</b><small>'+c.n+' நினைவூட்டல்</small></div>'+
+    '<div class="row-mid"><b class="notr">'+esc(cname(c.cat, true))+'</b><small>'+c.n+' நினைவூட்டல்</small></div>'+
     '<div class="row-right"><b>'+(c.amt?money(c.amt):'—')+'</b></div></div>').join('')
     : '<div class="empty"><i>📊</i>தரவு இல்ல.</div>';
 
@@ -1111,7 +1130,7 @@ function openForm(id){
     catIds.map(cid => {
       const c = STATE.categories[cid];
       return '<div class="catcell '+(cid===curCat?'on':'')+'" data-cat="'+cid+'">'+
-        '<i>'+esc(c.emoji||'📌')+'</i><span>'+esc(cname(c, true))+'</span></div>';
+        '<i>'+esc(c.emoji||'📌')+'</i><span class="notr">'+cnameHtml(c)+'</span></div>';
     }).join('')+'</div>';
 
   h += '<label class="fl">எப்போ கட்டணும் / முடியுது? *</label>'+
@@ -1144,7 +1163,8 @@ function openForm(id){
     '<textarea class="in" id="fNotes">'+esc(r?(r.notes||''):'')+'</textarea>';
 
   h += '<div class="divider"></div>'+
-    '<button class="btn btn-primary" id="fSave">'+(id?'மாற்று':'சேமி')+'</button>';
+    '<button class="btn btn-primary" id="fSave">'+(id?'மாற்று':'சேமி')+'</button>'+
+    '<button class="btn btn-ghost" id="fBack">⬅️ பின்னால்</button>';
   if(id) h += '<button class="btn btn-danger" id="fDel">🗑️ இதை நீக்கு</button>';
 
   openSheet(h, true);
@@ -1164,6 +1184,7 @@ function openForm(id){
     c.onclick = () => c.classList.toggle('on'));
   $('fNag').onclick = () => $('fNag').classList.toggle('on-amber');
   $('fSave').onclick = saveForm;
+  $('fBack').onclick = closeSheet;
   if($('fDel')) $('fDel').onclick = () => confirmDelete(id);
 }
 
@@ -1216,7 +1237,7 @@ function openDetail(id){
     dl:daysLeft(parseYmd(raw.dueDate)), cat:catOf(raw.categoryId)});
 
   const hist = paymentList().filter(p => p.reminderId === id);
-  let h = '<div class="sheet-title"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;">'+
+  let h = '<div class="sheet-title"><span class="notr" style="min-width:0;overflow:hidden;text-overflow:ellipsis;">'+
       esc(r.cat.emoji)+' '+esc(r.title)+'</span><button class="x">✕</button></div>';
 
   h += '<div class="card" style="text-align:center;">'+
@@ -1228,13 +1249,13 @@ function openDetail(id){
 
   const alerts = (r.alerts||[]).map(alertLabel).join(', ');
   h += '<div class="card" style="font-size:13.5px;line-height:2;">'+
-    '<div><span class="t-muted">வகை:</span> '+esc(cname(r.cat))+'</div>'+
+    '<div><span class="t-muted">வகை:</span> <span class="notr">'+esc(cname(r.cat))+'</span></div>'+
     '<div><span class="t-muted">திரும்ப:</span> '+esc(REPEAT_T[r.repeat]||'திரும்ப வராது')+'</div>'+
     '<div><span class="t-muted">ஞாபகப்படுத்தல்:</span> '+esc(alerts||'—')+
       (r.nagOverdue ? ' <span class="pill a">தினமும்</span>' : '')+'</div>'+
-    (r.refNo ? '<div><span class="t-muted">குறிப்பு எண்:</span> '+esc(r.refNo)+'</div>' : '')+
-    (r.contactName ? '<div><span class="t-muted">தொடர்பு:</span> '+esc(r.contactName)+'</div>' : '')+
-    (r.notes ? '<div style="line-height:1.6;margin-top:6px;"><span class="t-muted">குறிப்பு:</span> '+esc(r.notes)+'</div>' : '')+
+    (r.refNo ? '<div><span class="t-muted">குறிப்பு எண்:</span> <span class="notr">'+esc(r.refNo)+'</span></div>' : '')+
+    (r.contactName ? '<div><span class="t-muted">தொடர்பு:</span> <span class="notr">'+esc(r.contactName)+'</span></div>' : '')+
+    (r.notes ? '<div style="line-height:1.6;margin-top:6px;"><span class="t-muted">குறிப்பு:</span> <span class="notr">'+esc(r.notes)+'</span></div>' : '')+
   '</div>';
 
   h += '<button class="btn btn-primary" id="dPaid">✅ கட்டியாச்சு</button>';
@@ -1270,7 +1291,7 @@ function openPaid(id){
   const due = parseYmd(raw.dueDate);
   const nxt = nextDue(due, raw.repeat);
   let h = '<div class="sheet-title">✅ கட்டியாச்சு<button class="x">✕</button></div>';
-  h += '<div class="hint" style="margin-bottom:12px;">'+esc(raw.title)+'</div>';
+  h += '<div class="hint notr" style="margin-bottom:12px;">'+esc(raw.title)+'</div>';
   h += '<label class="fl">எப்போ கட்டினீங்க?</label>'+
     '<input class="in" type="date" id="pDate" value="'+ymd(Date.now())+'">';
   h += '<label class="fl">எவ்வளவு?</label>'+
@@ -1283,8 +1304,10 @@ function openPaid(id){
     h += '<div class="card" style="margin-top:14px;">'+
       '<div style="font-size:13px;color:var(--muted);">இது திரும்ப வராது — கட்டியாச்சுன்னா பட்டியல்ல இருந்து போயிடும்.</div></div>';
   }
-  h += '<button class="btn btn-primary" id="pSave">சேமி</button>';
+  h += '<button class="btn btn-primary" id="pSave">சேமி</button>'+
+       '<button class="btn btn-ghost" id="pBack">⬅️ பின்னால்</button>';
   openSheet(h);
+  $('pBack').onclick = closeSheet;
   $('pSave').onclick = () => doPaid(id);
 }
 
@@ -1328,7 +1351,7 @@ async function doPaid(id){
 function confirmDelete(id){
   const t = STATE.reminders[id] ? STATE.reminders[id].title : '';
   openSheet('<div class="sheet-title">🗑️ நீக்கவா?<button class="x">✕</button></div>'+
-    '<div class="hint" style="margin-bottom:14px;">"'+esc(t)+'" நிரந்தரமா போயிடும். திரும்ப கொண்டு வர முடியாது.</div>'+
+    '<div class="hint" style="margin-bottom:14px;"><span class="notr">"'+esc(t)+'"</span> நிரந்தரமா போயிடும். திரும்ப கொண்டு வர முடியாது.</div>'+
     '<button class="btn btn-danger" id="delYes">ஆமா, நீக்கு</button>'+
     '<button class="btn btn-ghost" id="delNo">வேணாம்</button>');
   $('delNo').onclick = closeSheet;
@@ -1375,7 +1398,7 @@ function openCats(){
     const c = STATE.categories[id];
     const n = Object.values(STATE.reminders).filter(r => r.categoryId===id).length;
     return '<div class="row ok"><div class="row-emoji">'+esc(c.emoji||'📌')+'</div>'+
-      '<div class="row-mid"><b>'+esc(cname(c))+'</b><small>'+n+' நினைவூட்டல்</small></div>'+
+      '<div class="row-mid"><b class="notr">'+esc(cname(c))+'</b><small>'+n+' நினைவூட்டல்</small></div>'+
       '<div class="row-right" style="display:flex;gap:6px;">'+
       '<button class="x" data-cedit="'+id+'">✏️</button>'+
       '<button class="x" data-cdel="'+id+'">🗑️</button></div></div>';
@@ -1407,8 +1430,10 @@ function openCatForm(id){
     ALERT_DAYS.map(d => '<button type="button" class="chip '+(curAlerts.indexOf(d)>=0?'on':'')+
       '" data-al="'+d+'">'+alertLabel(d)+'</button>').join('')+'</div>';
   h += '<div class="hint">இந்த வகை தேர்ந்தெடுத்தா, மேல இருக்கறது தானா நிரம்பிடும்.</div>';
-  h += '<button class="btn btn-primary" id="cSave" style="margin-top:16px;">சேமி</button>';
+  h += '<button class="btn btn-primary" id="cSave" style="margin-top:16px;">சேமி</button>'+
+       '<button class="btn btn-ghost" id="cBack">⬅️ பின்னால்</button>';
   openSheet(h, true);
+  $('cBack').onclick = openCats;
   $('cEmoji').querySelectorAll('.chip').forEach(b => b.onclick = () => {
     $('cEmoji').querySelectorAll('.chip').forEach(x => x.classList.remove('on'));
     b.classList.add('on');
@@ -1435,7 +1460,7 @@ function delCat(id){
   const n = Object.values(STATE.reminders).filter(r => r.categoryId===id).length;
   if(n){ toast('இந்த வகைல '+n+' நினைவூட்டல் இருக்கு — முதல்ல அத மாத்துங்க'); return; }
   openSheet('<div class="sheet-title">🗑️ நீக்கவா?<button class="x">✕</button></div>'+
-    '<div class="hint" style="margin-bottom:14px;">"'+esc(cname(catOf(id)))+'" வகை நீங்கிடும்.</div>'+
+    '<div class="hint" style="margin-bottom:14px;"><span class="notr">"'+esc(cname(catOf(id)))+'"</span> வகை நீங்கிடும்.</div>'+
     '<button class="btn btn-danger" id="cdYes">ஆமா, நீக்கு</button>'+
     '<button class="btn btn-ghost" id="cdNo">வேணாம்</button>');
   $('cdNo').onclick = openCats;
@@ -1557,7 +1582,7 @@ function refreshAlarm(){
   $('alarmSub').textContent = list.length + ' விஷயம் இருக்கு';
   $('alarmList').innerHTML = list.slice(0,6).map(r =>
     '<div class="card" style="background:#3D1414;border-color:#7A2020;padding:11px;">'+
-    '<b style="font-size:14.5px;">'+esc(r.cat.emoji)+' '+esc(r.title)+'</b>'+
+    '<b style="font-size:14.5px;" class="notr">'+esc(r.cat.emoji)+' '+esc(r.title)+'</b>'+
     '<div style="font-size:12.5px;color:#FFC9C9;margin-top:2px;">'+
       fmtDate(r.due)+' · '+daysText(r.due)+
       (r.amount ? ' · '+money(r.amount) : '')+'</div></div>').join('');
@@ -1615,7 +1640,8 @@ function openSettings(){
     [['ta','தமிழ்'],['en','English'],['both','தமிழ் + English']].map(x =>
       '<button type="button" class="chip '+(LANG===x[0]?'on':'')+'" data-lg="'+x[0]+'">'+x[1]+'</button>'
     ).join('')+'</div>';
-  h += '<button class="btn btn-primary" id="sSave" style="margin-top:16px;">சேமி</button>';
+  h += '<button class="btn btn-primary" id="sSave" style="margin-top:16px;">சேமி</button>'+
+       '<button class="btn btn-ghost" id="sBack">⬅️ பின்னால்</button>';
 
   h += '<div class="divider"></div>';
   h += '<button class="btn btn-ghost" id="sCats">🗂️ வகைகளை நிர்வகி</button>';
@@ -1656,6 +1682,7 @@ function openSettings(){
   $('sLang').querySelectorAll('.chip').forEach(b => b.onclick = async () => {
     closeSheet(); await setLang(b.dataset.lg); toast('சேமிச்சாச்சு');
   });
+  $('sBack').onclick  = closeSheet;
   $('sCats').onclick  = openCats;
   $('sPin').onclick   = openPinChange;
   $('sIcs').onclick   = () => downloadIcs(activeReminders());
@@ -1671,7 +1698,9 @@ function openPinChange(){
     '<input class="in" id="np1" inputmode="numeric" maxlength="4" type="password">'+
     '<label class="fl">மறுபடி போடுங்க</label>'+
     '<input class="in" id="np2" inputmode="numeric" maxlength="4" type="password">'+
-    '<button class="btn btn-primary" id="npSave" style="margin-top:16px;">PIN மாற்று</button>');
+    '<button class="btn btn-primary" id="npSave" style="margin-top:16px;">PIN மாற்று</button>'+
+    '<button class="btn btn-ghost" id="npBack">⬅️ பின்னால்</button>');
+  $('npBack').onclick = openSettings;
   $('npSave').onclick = async () => {
     const a = $('np1').value.trim(), b = $('np2').value.trim();
     if(!/^\d{4}$/.test(a)){ toast('4 எண் போடுங்க'); return; }
