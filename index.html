@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="app-build" content="20260804-1445">
+<meta name="app-build" content="20260804-1720">
 <meta name="theme-color" content="#0B1F17">
 <title>RemindMe — நினைவூட்டல்</title>
 <link rel="manifest" href="manifest.json">
@@ -145,10 +145,11 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xml
 .mask{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;
   display:none;align-items:flex-end;justify-content:center;}
 .mask.on{display:flex;}
-.sheet{background:var(--card);width:100%;max-width:560px;max-height:92vh;
+.sheet{background:var(--card);width:100%;max-width:560px;
+  max-height:92vh;max-height:92dvh;
   overflow-y:auto;border-radius:20px 20px 0 0;padding:0 16px 34px;
   border-top:1px solid var(--line);animation:up .2s ease;}
-.sheet.full{max-height:100vh;height:100vh;border-radius:0;}
+.sheet.full{max-height:100vh;max-height:100dvh;height:100vh;height:100dvh;border-radius:0;}
 @keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
 .sheet-title{font-size:17px;font-weight:700;
   position:sticky;top:0;z-index:6;background:var(--card);
