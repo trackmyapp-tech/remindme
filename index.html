@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="app-build" content="20260804-2313">
+<meta name="app-build" content="20260805-0341">
 <meta name="theme-color" content="#0B1F17">
 <title>RemindMe — நினைவூட்டல்</title>
 <link rel="manifest" href="manifest.json">
@@ -163,6 +163,8 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xml
 .catrow-arrows{display:flex;flex-direction:column;gap:2px;}
 .catrow-arrows .x{width:30px;height:14px;font-size:9px;border-radius:6px;line-height:1;padding:0;}
 .row.catoff{opacity:.5;border-left-color:var(--muted);}
+@keyframes catflash{0%{background:var(--green);}100%{background:var(--card);}}
+.row.flash{animation:catflash 1.1s ease-out;}
 
 /* ---------- calendar ---------- */
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
@@ -1643,7 +1645,12 @@ function logAct(txt){
 /* ============================================================
    CATEGORIES
    ============================================================ */
-function openCats(){
+function openCats(focusId){
+  /* openCats சில இடத்துல callback-ஆ கொடுக்கப்படுது (openSheet-ஓட back,
+     'வேணாம்' பொத்தான்) — அப்போ Event object வந்துடும். string-ஆ இருந்தா
+     மட்டும்தான் அது வகை id. */
+  const fid = (typeof focusId === 'string' && focusId) ? focusId : null;
+  const keep = (fid && $('sheet')) ? $('sheet').scrollTop : 0;
   const ids = Object.keys(STATE.categories)
     .sort((a,b) => (STATE.categories[a].order||0) - (STATE.categories[b].order||0));
   let h = '<div class="sheet-title">🗂️ வகைகள்<button class="x">✕</button></div>';
@@ -1676,6 +1683,26 @@ function openCats(){
     b.onclick = () => moveCat(b.dataset.cup, -1));
   $('sheet').querySelectorAll('[data-cdn]').forEach(b =>
     b.onclick = () => moveCat(b.dataset.cdn, 1));
+
+  /* மறுபடி வரையும்போது openSheet scroll-ஐ மேல தூக்கிடும். அப்போ நகர்த்தின
+     வகை எங்க போச்சுன்னே தெரியாது, மறுபடி கீழ இறங்கி தேடணும். அதனால இருந்த
+     இடத்துலயே நிறுத்தி, அந்த வரிசையை ஒரு நொடி மின்ன வைக்கிறோம். */
+  if(fid){
+    const sh = $('sheet');
+    sh.scrollTop = keep;
+    const btn = sh.querySelector('[data-cup="'+fid+'"]');
+    const row = btn ? btn.closest('.row') : null;
+    if(row){
+      row.classList.add('flash');
+      /* தலைப்பு sticky-ஆ மேல ஒட்டியிருக்கு — அதோட உயரத்தை கழிக்கலைனா
+         வரிசை அதுக்கு பின்னாடி மறைஞ்சுடும். */
+      const ttl = sh.querySelector('.sheet-title');
+      const top = (ttl ? ttl.offsetHeight : 0) + 8;
+      const sr = sh.getBoundingClientRect(), rr = row.getBoundingClientRect();
+      if(rr.top < sr.top + top) sh.scrollTop -= (sr.top + top - rr.top);
+      else if(rr.bottom > sr.bottom - 10) sh.scrollTop += (rr.bottom - sr.bottom + 10);
+    }
+  }
 }
 
 /* வகையை நிறுத்து / மறுபடி இயக்கு — நீக்கறது இல்ல, அதனால ஏற்கனவே இருக்கற
@@ -1685,7 +1712,7 @@ async function toggleCat(id){
   const off = !c.disabled;
   try{
     await R('categories/'+id).update({disabled: off});
-    openCats(); toast(off ? 'நிறுத்தியாச்சு' : 'மறுபடி இயக்கியாச்சு');
+    openCats(id); toast(off ? 'நிறுத்தியாச்சு' : 'மறுபடி இயக்கியாச்சு');
   }catch(e){ toast('மாற்ற முடியல, மறுபடி முயற்சி பண்ணுங்க'); }
 }
 
@@ -1702,7 +1729,7 @@ async function moveCat(id, dir){
   ids[i] = ids[j]; ids[j] = id;
   const up = {};
   ids.forEach((cid, k) => { up[cid + '/order'] = k; });
-  try{ await R('categories').update(up); openCats(); }
+  try{ await R('categories').update(up); openCats(id); }
   catch(e){ toast('நகர்த்த முடியல, மறுபடி முயற்சி பண்ணுங்க'); }
 }
 
@@ -1743,9 +1770,14 @@ function openCatForm(id){
       alerts: Array.from($('cAlerts').querySelectorAll('.chip.on')).map(x=>+x.dataset.al).sort((a,b)=>b-a)
     };
     try{
+      let backTo = id;
       if(id) await R('categories/'+id).update(data);
-      else { data.order = Object.keys(STATE.categories).length; await R('categories').push(data); }
-      openCats(); toast('சேமிச்சாச்சு');
+      else {
+        data.order = Object.keys(STATE.categories).length;
+        const ref = await R('categories').push(data);
+        backTo = ref.key;   /* புதுசா சேர்த்ததையும் காட்டணும் */
+      }
+      openCats(backTo); toast('சேமிச்சாச்சு');
     }catch(e){ toast('சேமிக்க முடியல, மறுபடி முயற்சி பண்ணுங்க'); }
   };
 }
