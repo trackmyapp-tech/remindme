@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="app-build" content="20260805-0341">
+<meta name="app-build" content="20260805-0406">
 <meta name="theme-color" content="#0B1F17">
 <title>RemindMe — நினைவூட்டல்</title>
 <link rel="manifest" href="manifest.json">
@@ -557,10 +557,11 @@ const DICT = {
  'நிறுத்தியாச்சு':'Disabled','மறுபடி இயக்கியாச்சு':'Turned back on',
  '✏️ வேற நாள்':'✏️ Custom days','எத்தனை நாள் முன்?':'How many days before?','சேர்':'Add',
  'எத்தனை நாள்னு போடுங்க':'Enter how many days',
- '0 முதல் 3650 நாள் வரைக்கும் போடலாம்':'Enter a number between 0 and 3650',
+ '0 முதல் 400 நாள் வரைக்கும் போடலாம்':'Enter a number between 0 and 400',
  'ஏற்கனவே இருக்கு — தேர்ந்தெடுத்தாச்சு':'Already there — selected it',
  'நிறுத்தின வகை — புது நினைவூட்டல்ல வராது':'Disabled — will not show for new reminders',
  'எல்லா வகையும் நிறுத்தியிருக்கு':'Every category is disabled',
+ 'இந்த மாற்றத்தை server ஏத்துக்கல':'The server did not accept this change',
  'மேல நகர்த்த முடியல':'Cannot move up','கீழ நகர்த்த முடியல':'Cannot move down',
  /* settings */
  '⚙️ அமைப்புகள்':'⚙️ Settings','நிறுவனம் / பேரு':'Business / name',
@@ -839,7 +840,7 @@ function wireAlertChips(idBase){
   $(idBase+'Add').onclick = () => {
     const v = parseInt(num.value, 10);
     if(isNaN(v)){ toast('எத்தனை நாள்னு போடுங்க'); return; }
-    if(v < 0 || v > 3650){ toast('0 முதல் 3650 நாள் வரைக்கும் போடலாம்'); return; }
+    if(v < 0 || v > 400){ toast('0 முதல் 400 நாள் வரைக்கும் போடலாம்'); return; }
     const ex = box.querySelector('[data-al="'+v+'"]');
     if(ex){ ex.classList.add('on'); toast('ஏற்கனவே இருக்கு — தேர்ந்தெடுத்தாச்சு'); }
     else {
@@ -1662,7 +1663,7 @@ function openCats(focusId){
     return '<div class="row '+(off?'catoff':'ok')+'"><div class="row-emoji">'+esc(c.emoji||'📌')+'</div>'+
       '<div class="row-mid"><b class="notr">'+esc(cname(c))+'</b>'+
         '<small>'+n+' நினைவூட்டல்</small>'+
-        (off ? '<small>நிறுத்தின வகை — புது நினைவூட்டல்ல வராது</small>' : '')+'</div>'+
+        (off ? '<small>நிறுத்தியாச்சு</small>' : '')+'</div>'+
       '<div class="row-right catrow-acts">'+
       '<div class="catrow-arrows">'+
         '<button class="x" data-cup="'+id+'"'+(i===0?' disabled':'')+'>▲</button>'+
@@ -1710,10 +1711,18 @@ function openCats(focusId){
 async function toggleCat(id){
   const c = STATE.categories[id]; if(!c) return;
   const off = !c.disabled;
+  /* சேமிக்கறதையும் திரை வரையறதையும் ஒரே try-ல வெச்சா, சேமிப்பு வெற்றியா
+     முடிஞ்சு வரையறதுல மட்டும் தப்பு வந்தாலும் "முடியல" னு தப்பா காட்டும். */
   try{
     await R('categories/'+id).update({disabled: off});
-    openCats(id); toast(off ? 'நிறுத்தியாச்சு' : 'மறுபடி இயக்கியாச்சு');
-  }catch(e){ toast('மாற்ற முடியல, மறுபடி முயற்சி பண்ணுங்க'); }
+  }catch(e){
+    toast(String(e && e.message || '').indexOf('PERMISSION_DENIED') >= 0
+      ? 'இந்த மாற்றத்தை server ஏத்துக்கல'
+      : 'மாற்ற முடியல, மறுபடி முயற்சி பண்ணுங்க');
+    return;
+  }
+  toast(off ? 'நிறுத்தியாச்சு' : 'மறுபடி இயக்கியாச்சு');
+  openCats(id);
 }
 
 /* மேல / கீழ நகர்த்து. seed வகைகள் 0-11, புசுசா சேர்த்தது length —
@@ -1729,8 +1738,15 @@ async function moveCat(id, dir){
   ids[i] = ids[j]; ids[j] = id;
   const up = {};
   ids.forEach((cid, k) => { up[cid + '/order'] = k; });
-  try{ await R('categories').update(up); openCats(id); }
-  catch(e){ toast('நகர்த்த முடியல, மறுபடி முயற்சி பண்ணுங்க'); }
+  try{
+    await R('categories').update(up);
+  }catch(e){
+    toast(String(e && e.message || '').indexOf('PERMISSION_DENIED') >= 0
+      ? 'இந்த மாற்றத்தை server ஏத்துக்கல'
+      : 'நகர்த்த முடியல, மறுபடி முயற்சி பண்ணுங்க');
+    return;
+  }
+  openCats(id);
 }
 
 const EMOJIS = ['📌','🚗','🛵','🚚','🛡️','📜','🧾','🏦','🏠','💡','💧','🔧','🌐','📁','🎉','💊','🎓','📱','🔥','⚡','🧰','🐄','🌾','🏪','💳','📷','✈️','⚖️'];
