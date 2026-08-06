@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="app-build" content="20260806-0645">
+<meta name="app-build" content="20260806-0726">
 <meta name="theme-color" content="#0B1F17">
 <title>RemindMe — நினைவூட்டல்</title>
 <link rel="manifest" href="manifest.json">
@@ -52,10 +52,10 @@ a{color:var(--green);}
   justify-content:center;font-size:17px;flex:0 0 auto;}
 
 /* ---------- ticker ---------- */
-.ticker{background:var(--card2);border-bottom:1px solid var(--line);
-  overflow:hidden;white-space:nowrap;padding:7px 0;font-size:13px;color:var(--amber);display:none;}
+.ticker{background:var(--tick-bg,var(--card2));border-bottom:1px solid var(--line);
+  overflow:hidden;white-space:nowrap;padding:7px 0;font-size:13px;color:var(--tick-fg,var(--amber));display:none;}
 .ticker.on{display:block;}
-.ticker span{display:inline-block;padding-left:100%;animation:tick 18s linear infinite;}
+.ticker span{display:inline-block;padding-left:100%;animation:tick var(--tick-dur,18s) linear infinite;}
 @keyframes tick{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
 
 /* ---------- cards ---------- */
@@ -307,7 +307,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xml
     <button class="icon-btn" id="btnSettings">⚙️</button>
   </div>
 </div>
-<div class="ticker" id="ticker"><span id="tickerTxt"></span></div>
+<div class="ticker" id="ticker"><span class="notr" id="tickerTxt"></span></div>
 
 <div class="wrap" id="app"></div>
 
@@ -429,6 +429,37 @@ function daysText(ts){
   if(d === -1) return 'நேற்று தவறியது';
   if(d < 0)    return Math.abs(d)+' நாள் தாண்டியது';
   return d+' நாள் பாக்கி';
+}
+/* DB-la irunthu varra niram — #RRGGBB mattum ethukanum, matham thallanum */
+function hex6(v){
+  return (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v.trim())) ? v.trim() : '';
+}
+/* speed — pixel-per-second. neelamaana message-um ore vegathula odum */
+const TICK_PPS = {low:35, med:60, high:100};
+let TICK_SPEED = 'med';
+function tickSpeed(){
+  const t = $('ticker'), s = $('tickerTxt');
+  if(!t || !s || !t.classList.contains('on')) return;
+  const dist = s.offsetWidth;          /* container agalam + text agalam */
+  if(!dist) return;
+  const pps  = TICK_PPS[TICK_SPEED] || TICK_PPS.med;
+  const secs = Math.max(4, Math.min(180, dist / pps));
+  s.style.setProperty('--tick-dur', secs.toFixed(1) + 's');
+  s.style.animation = 'none';
+  void s.offsetWidth;                  /* reflow — puthu duration-la thirumba aarambikkanum */
+  s.style.animation = '';
+}
+/* font/agalam maarina thirumba alakkanum */
+let _tkT = 0;
+window.addEventListener('resize', () => { clearTimeout(_tkT); _tkT = setTimeout(tickSpeed, 250); });
+
+/* niram + opacity -> rgba. bgA illana muzhusa opaque, 0 na transparent */
+function tickBg(hex, a){
+  const h = hex6(hex);
+  if(!h) return '';
+  const n = parseInt(h.slice(1), 16);
+  const p = (typeof a === 'number' && isFinite(a)) ? Math.max(0, Math.min(100, a)) : 100;
+  return 'rgba(' + ((n>>16)&255) + ',' + ((n>>8)&255) + ',' + (n&255) + ',' + (p/100) + ')';
 }
 async function sha256(txt){
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
@@ -910,10 +941,19 @@ function watch(){
   R('payments').on('value',   s => { STATE.payments   = s.val() || {}; render(); });
   R('license').on('value', s => { STATE.license = s.val() || {}; applyLicense(); });
   R('flashMessage').on('value', s => {
-    const v = s.val();
-    const on = v && v.on && v.text;
-    $('ticker').classList.toggle('on', !!on);
-    if(on) $('tickerTxt').textContent = v.text;
+    const v = s.val() || {};
+    const on = v.on && v.text;
+    const t = $('ticker');
+    t.classList.toggle('on', !!on);
+    if(on){
+      $('tickerTxt').textContent = v.text;
+      const bg = tickBg(v.bg, v.bgA), fg = hex6(v.fg);
+      bg ? t.style.setProperty('--tick-bg', bg) : t.style.removeProperty('--tick-bg');
+      fg ? t.style.setProperty('--tick-fg', fg) : t.style.removeProperty('--tick-fg');
+      TICK_SPEED = TICK_PPS[v.speed] ? v.speed : 'med';
+      requestAnimationFrame(tickSpeed);
+      if(document.fonts && document.fonts.ready) document.fonts.ready.then(tickSpeed).catch(()=>{});
+    }
   });
 }
 function applyBrand(){
