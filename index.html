@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="app-build" content="20260806-1113">
+<meta name="app-build" content="20260806-1119">
 <meta name="theme-color" content="#0B1F17">
 <title>RemindMe — நினைவூட்டல்</title>
 <link rel="manifest" href="manifest.json">
@@ -502,6 +502,8 @@ function fmtShortL(ts, lg){ const d=new Date(ts);
 function fmtDateL(ts, lg){ const d=new Date(ts);
   return d.getDate()+' '+(lg==='en'?MON_EN:MON_TA)[d.getMonth()]+' '+d.getFullYear(); }
 /* இரண்டு மொழியும் — அகலம் இருக்கற இடத்துக்கு */
+function shortB(ts){ if(!ts) return '—';
+  return LANG==='both' ? fmtShortL(ts,'ta')+' · '+fmtShortL(ts,'en') : fmtShort(ts); }
 function fmtDateB(ts){ if(!ts) return '—';
   return LANG==='both' ? fmtDateL(ts,'ta')+' · '+fmtDateL(ts,'en') : fmtDate(ts); }
 function monLabel(m, y){
@@ -517,11 +519,6 @@ function toEn(s){
   return out.replace(/(^|[^0-9])1 ([A-Za-z]+)s\b/g, '$11 $2');
 }
 function daysTextL(ts, lg){ return lg === 'en' ? toEn(daysText(ts)) : daysText(ts); }
-/* late label — எண்+சொல் ஒரே node, அதனால tr() பொருத்தாது. daysTextL மாதிரி toEn() வழி. */
-function lateText(n){
-  const ta = n + ' நாள் லேட்';
-  return LANG === 'en' ? toEn(ta) : (LANG === 'both' ? ta + '\n' + toEn(ta) : ta);
-}
 /* இரண்டு மொழி வரிகளை ஒரே block-ஆ */
 function bi(ta, en){
   return LANG === 'en' ? en : (LANG === 'both' ? ta + '\n' + en : ta);
@@ -1306,7 +1303,7 @@ function viewList(){
                   : 'கட்ட வேண்டியது '+fmtShortL(parseYmd(p.dueWas),'ta')+' · கட்டினது '+fmtShortL(p.paidTs,'ta'))
           )+'</small></div>'+
         '<div class="row-right"><b class="t-green">'+(p.amount ? money(p.amount) : '✅')+'</b>'+
-          (p.late > 0 ? '<small class="t-red notr">'+esc(lateText(p.late))+'</small>'
+          (p.late > 0 ? '<small class="t-red">'+p.late+' நாள் லேட்</small>'
                       : '<small class="t-muted">சரியான நேரம்</small>')+
         '</div></div>';
     });
@@ -1611,7 +1608,7 @@ function openDetail(id){
         'கட்ட வேண்டியது '+fmtShortL(parseYmd(p.dueWas),'ta'),
         'Due '+fmtShortL(parseYmd(p.dueWas),'en')))+'</small></div>'+
       '<div class="row-right"><b class="t-green">'+(p.amount?money(p.amount):'✅')+'</b>'+
-      (p.late>0 ? '<small class="t-red notr">'+esc(lateText(p.late))+'</small>' : '')+
+      (p.late>0 ? '<small class="t-red">'+p.late+' நாள் லேட்</small>' : '')+
       '</div></div>').join('');
   }
 
@@ -1716,12 +1713,12 @@ function openPayment(pid){
     '<div style="font-size:12.5px;color:var(--muted);">கட்டின தேதி</div>'+
     '<div style="font-size:20px;font-weight:700;margin:3px 0;" class="notr">'+esc(fmtDateB(p.paidTs))+'</div>'+
     '<div class="'+(p.late > 0 ? 't-red' : 't-muted')+'" style="font-size:14px;font-weight:600;">'+
-      (p.late > 0 ? esc(lateText(p.late)) : 'சரியான நேரம்')+'</div>'+
+      (p.late > 0 ? p.late+' நாள் லேட்' : 'சரியான நேரம்')+'</div>'+
     (p.amount ? '<div style="font-size:23px;font-weight:700;margin-top:8px;">'+money(p.amount)+'</div>' : '')+
   '</div>';
 
   h += '<div class="card" style="font-size:13.5px;line-height:2;">'+
-    '<div><span class="t-muted">கட்ட வேண்டியது:</span> <span class="notr">'+esc(fmtShort(parseYmd(p.dueWas)))+'</span></div>'+
+    '<div><span class="t-muted">கட்ட வேண்டியது:</span> <span class="notr">'+esc(shortB(parseYmd(p.dueWas)))+'</span></div>'+
     (p.note ? '<div style="line-height:1.6;margin-top:6px;"><span class="t-muted">குறிப்பு:</span> <span class="notr">'+esc(p.note)+'</span></div>' : '')+
   '</div>';
 
