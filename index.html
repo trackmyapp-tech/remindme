@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="app-build" content="20260806-0835">
+<meta name="app-build" content="20260806-1058">
 <meta name="theme-color" content="#0B1F17">
 <title>RemindMe — நினைவூட்டல்</title>
 <link rel="manifest" href="manifest.json">
@@ -523,6 +523,18 @@ function bi(ta, en){
 }
 
 const DICT = {
+  /* கட்டின பதிவு நீக்கம் */
+  'கட்டின தேதி':'Paid on',
+  'கட்ட வேண்டியது:':'Due:',
+  '🗑️ பதிவை மட்டும் நீக்கு':'🗑️ Remove record only',
+  '↩️ கட்டினதை ரத்து பண்ணு':'↩️ Undo the payment',
+  'கட்டினதை ரத்து பண்ணவா?':'Undo this payment?',
+  'இந்த பதிவை நீக்கவா?':'Delete this record?',
+  'பதிவு போயிடும், நினைவூட்டல் திரும்ப கட்ட வேண்டியதா மாறிடும்.':'The record goes and the reminder becomes unpaid again.',
+  'இந்த கட்டின பதிவு மட்டும் போயிடும். நினைவூட்டல் அப்படியே இருக்கும்.':'Only this payment record goes. The reminder stays as it is.',
+  'திரும்ப கொண்டு வர முடியாது.':'This cannot be undone.',
+  'கட்டினது ரத்து ஆயிடுச்சு':'Payment undone',
+  'பதிவு நீக்கப்பட்டது':'Record removed',
  /* nav + shell */
  'முகப்பு':'Home','பட்டியல்':'List','சேர்':'Add','காலண்டர்':'Calendar','ரிப்போர்ட்':'Reports',
  'நினைவூட்டல்':'Reminders',
@@ -1269,7 +1281,7 @@ function viewList(){
       const d = new Date(p.paidTs);
       const key = monLabel(d.getMonth(), d.getFullYear());
       if(key !== cur){ cur = key; h += '<div class="sec-title">'+key+'</div>'; }
-      h += '<div class="row ok">'+
+      h += '<div class="row ok" data-pay="'+p.id+'">'+
         '<div class="row-emoji">'+esc(p.emoji || '✅')+'</div>'+
         '<div class="row-mid"><b class="notr">'+esc(p.title || '—')+'</b>'+
           '<small class="notr">'+esc(
@@ -1660,6 +1672,87 @@ async function doPaid(id){
     toast('சேமிக்க முடியல, மறுபடி முயற்சி பண்ணுங்க');
     if(window.__autoCheckPush) window.__autoCheckPush('paid', e.message, e.stack);
   } finally { btn.disabled = false; }
+}
+
+function payById(pid){
+  const p = STATE.payments[pid];
+  return p ? Object.assign({}, p, {id: pid, paidTs: parseYmd(p.paidDate)}) : null;
+}
+
+/* இந்த பதிவு அந்த நினைவூட்டலோட கடைசி பதிவா? கடைசியா இருந்தா மட்டும் 'ரத்து'
+   காட்டணும். இல்லைனா பழைய dueWas-க்கு நினைவூட்டலை பின்னோக்கி தள்ளிடும். */
+function isLatestPay(p){
+  if(!p || !p.reminderId || !STATE.reminders[p.reminderId]) return false;
+  const t = x => (typeof x.at === 'number' ? x.at : (parseYmd(x.paidDate) || 0));
+  const mine = t(p);
+  return !Object.keys(STATE.payments).some(k => {
+    if(k === p.id) return false;
+    const o = STATE.payments[k];
+    return o.reminderId === p.reminderId && t(o) > mine;
+  });
+}
+
+function openPayment(pid){
+  const p = payById(pid);
+  if(!p){ closeSheet(); return; }
+  const undo = isLatestPay(p);
+  let h = '<div class="sheet-title"><span class="notr" style="min-width:0;overflow:hidden;text-overflow:ellipsis;">'+
+      esc(p.emoji || '✅')+' '+esc(p.title || '—')+'</span><button class="x">✕</button></div>';
+
+  h += '<div class="card" style="text-align:center;">'+
+    '<div style="font-size:12.5px;color:var(--muted);">கட்டின தேதி</div>'+
+    '<div style="font-size:20px;font-weight:700;margin:3px 0;" class="notr">'+esc(fmtDateB(p.paidTs))+'</div>'+
+    '<div class="'+(p.late > 0 ? 't-red' : 't-muted')+'" style="font-size:14px;font-weight:600;">'+
+      (p.late > 0 ? p.late+' நாள் லேட்' : 'சரியான நேரம்')+'</div>'+
+    (p.amount ? '<div style="font-size:23px;font-weight:700;margin-top:8px;">'+money(p.amount)+'</div>' : '')+
+  '</div>';
+
+  h += '<div class="card" style="font-size:13.5px;line-height:2;">'+
+    '<div><span class="t-muted">கட்ட வேண்டியது:</span> <span class="notr">'+esc(fmtShort(parseYmd(p.dueWas)))+'</span></div>'+
+    (p.note ? '<div style="line-height:1.6;margin-top:6px;"><span class="t-muted">குறிப்பு:</span> <span class="notr">'+esc(p.note)+'</span></div>' : '')+
+  '</div>';
+
+  h += '<button class="btn btn-danger" id="pyDel">🗑️ பதிவை மட்டும் நீக்கு</button>';
+  if(undo) h += '<button class="btn btn-danger" id="pyUndo">↩️ கட்டினதை ரத்து பண்ணு</button>';
+  h += '<button class="btn btn-ghost" id="pyBack">⬅️ பின்னால்</button>';
+
+  openSheet(h, false, closeSheet);
+  $('pyBack').onclick = closeSheet;
+  $('pyDel').onclick = () => confirmDelPay(pid, false);
+  if($('pyUndo')) $('pyUndo').onclick = () => confirmDelPay(pid, true);
+}
+
+function confirmDelPay(pid, undo){
+  const p = payById(pid);
+  if(!p){ closeSheet(); return; }
+  openSheet('<div class="sheet-title">🗑️ '+
+      (undo ? 'கட்டினதை ரத்து பண்ணவா?' : 'இந்த பதிவை நீக்கவா?')+
+      '<button class="x">✕</button></div>'+
+    '<div class="hint" style="margin-bottom:14px;">'+
+      '<div class="notr">"'+esc(p.title || '—')+'"</div>'+
+      '<div>'+(undo ? 'பதிவு போயிடும், நினைவூட்டல் திரும்ப கட்ட வேண்டியதா மாறிடும்.'
+                    : 'இந்த கட்டின பதிவு மட்டும் போயிடும். நினைவூட்டல் அப்படியே இருக்கும்.')+'</div>'+
+      '<div>திரும்ப கொண்டு வர முடியாது.</div>'+
+    '</div>'+
+    '<button class="btn btn-danger" id="pyYes">ஆமா, நீக்கு</button>'+
+    '<button class="btn btn-ghost" id="pyNo">வேணாம்</button>', false, () => openPayment(pid));
+  $('pyNo').onclick = () => openPayment(pid);
+  $('pyYes').onclick = async () => {
+    const b = $('pyYes'); b.disabled = true;
+    try{
+      if(undo && p.reminderId && STATE.reminders[p.reminderId]){
+        await R('reminders/'+p.reminderId).update(
+          {dueDate: p.dueWas, status: 'active', lastPaidAt: null});
+      }
+      await R('payments/'+pid).remove();
+      logAct((undo ? 'கட்டினது ரத்து: ' : 'பதிவு நீக்கம்: ')+(p.title || ''));
+      toast(undo ? 'கட்டினது ரத்து ஆயிடுச்சு' : 'பதிவு நீக்கப்பட்டது');
+      closeSheet();
+    }catch(e){
+      toast('நீக்க முடியல, மறுபடி முயற்சி பண்ணுங்க');
+      if(window.__autoCheckPush) window.__autoCheckPush('delpay', e.message, e.stack);
+    }finally{ b.disabled = false; }
+  };
 }
 
 function confirmDelete(id){
@@ -2141,6 +2234,8 @@ function bindView(){
   const app = $('app');
   app.querySelectorAll('[data-open]').forEach(el =>
     el.onclick = () => openDetail(el.dataset.open));
+  app.querySelectorAll('[data-pay]').forEach(el =>
+    el.onclick = () => openPayment(el.dataset.pay));
   app.querySelectorAll('[data-lt]').forEach(el =>
     el.onclick = () => {
       STATE.listTab = el.dataset.lt;
