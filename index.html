@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="app-build" content="20260806-1107">
+<meta name="app-build" content="20260806-1113">
 <meta name="theme-color" content="#0B1F17">
 <title>RemindMe — நினைவூட்டல்</title>
 <link rel="manifest" href="manifest.json">
@@ -738,6 +738,15 @@ function cnameHtml(c){
   if(LANG === 'both' && c.nameEn) return esc(c.name)+'<em>'+esc(c.nameEn)+'</em>';
   return esc(cname(c));
 }
+/* both-mode துணை வரி. வகைக்கு nameEn இல்லைனா ரெண்டு மொழியிலும் ஒரே பெயர் —
+   அதை இரட்டிச்சு காட்டினா வரிசை தேவை இல்லாம ஊதிடும். ஒரே தடவை போட்டு
+   தேதி ரெண்டையும் ஒரே வரியில சேர்க்கிறோம். */
+function rowSubL(c, due){
+  const ta = cnameL(c,'ta'), en = cnameL(c,'en');
+  const dta = fmtShortL(due,'ta'), den = fmtShortL(due,'en');
+  if(ta === en) return ta + '\n' + dta + ' · ' + den;
+  return ta + ' · ' + dta + '\n' + en + ' · ' + den;
+}
 function cnameL(c, lg){
   if(!c) return '';
   if(lg === 'en') return c.nameEn || c.name || '';
@@ -1222,8 +1231,7 @@ function reminderRow(r){
     '<div class="row-mid"><b class="notr">'+esc(r.title)+'</b>'+
       '<small class="notr">'+esc(
         LANG === 'both'
-          ? cnameL(r.cat,'ta')+' · '+fmtShortL(r.due,'ta')+'\n'+
-            cnameL(r.cat,'en')+' · '+fmtShortL(r.due,'en')
+          ? rowSubL(r.cat, r.due)
           : cname(r.cat)+' · '+fmtShort(r.due)
       )+'</small></div>'+
     '<div class="row-right">'+
