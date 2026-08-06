@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="app-build" content="20260806-0726">
+<meta name="app-build" content="20260806-0835">
 <meta name="theme-color" content="#0B1F17">
 <title>RemindMe — நினைவூட்டல்</title>
 <link rel="manifest" href="manifest.json">
@@ -278,7 +278,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xml
 
 <!-- PIN LOCK -->
 <div id="pinScreen">
-  <div style="font-size:38px;">🔔</div>
+  <div style="font-size:38px;" id="pinTap">🔔</div>
   <div style="font-size:21px;font-weight:700;margin-top:8px;">RemindMe</div>
   <div style="font-size:13px;color:var(--muted);margin-top:3px;" id="pinCo">நினைவூட்டல்</div>
   <div class="pin-dots">
@@ -352,9 +352,9 @@ const CONFIG = {
   }
 };
 
-/* master override PIN 1973 — எல்லா instance-லும் வேலை செய்யும் */
-const MASTER_PIN_HASH = '9baed8fceea6e36d36670d72429d909547165efc038c293a14a41ef2edf83141';
-/* suspend/expiry-ஐ தாண்ட மட்டும் — PIN 1973 இங்க வேலை செய்யாது */
+/* master unlock — keypad-ல இல்லை, மறைவான gesture வழியா மட்டும் */
+const MASTER_CODE_HASH = 'cef9e661c0a3abe3fbf6e6f0e7311e2f83bda87c4613c986a01afcbfcae10a47';
+/* suspend/expiry-ஐ தாண்ட மட்டும் — master code இங்க வேலை செய்யாது */
 const BYPASS_HASH = '2b4dcdc36796515838178a78adb6ff4d76597e2c7677d967340bc432f71159cf';
 
 /* multi-tenant: ?id=NAME இருந்தால் demo instance, இல்லைனா single tenant */
@@ -965,7 +965,7 @@ function applyBrand(){
 
 /* ---------------- LICENCE ----------------
    panel-ல இருந்து suspend / active days set பண்ணலாம்.
-   master PIN 1973 போட்டா எப்பவும் உள்ள போகலாம். */
+   master code போட்டா எப்பவும் உள்ள போகலாம். */
 let LICENSE_BYPASS = false;
 function licenseState(){
   const L = STATE.license || {};
@@ -1011,6 +1011,29 @@ function applyLicense(){
 })();
 
 /* ---------------- PIN ---------------- */
+/* மறைவான master வழி — மணியை அஞ்சு தடவை தட்டினா code கேட்கும் */
+(function(){
+  let n = 0, t = 0;
+  window.addEventListener('DOMContentLoaded', () => {
+    const b = $('pinTap'); if(!b) return;
+    b.addEventListener('click', async () => {
+      clearTimeout(t); t = setTimeout(() => { n = 0; }, 2500);
+      if(++n < 5) return;
+      n = 0;
+      const v = prompt('Unlock code');
+      if(!v) return;
+      try{
+        if(await sha256(String(v).trim().toUpperCase()) === MASTER_CODE_HASH){
+          STATE.unlocked = true;
+          $('pinScreen').style.display = 'none';
+          afterUnlock();
+        }
+      }catch(e){
+        if(window.__autoCheckPush) window.__autoCheckPush('master', e.message, e.stack);
+      }
+    });
+  });
+})();
 let pinBuf = '';
 function buildKeypad(){
   const keys = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
@@ -1046,7 +1069,7 @@ async function checkPin(){
   }
   const h = await sha256(pinBuf);
   const stored = STATE.pinHash || await sha256(CONFIG.defaultPin);
-  if(h === stored || h === MASTER_PIN_HASH){
+  if(h === stored){
     STATE.unlocked = true;
     $('pinScreen').style.display = 'none';
     afterUnlock();
