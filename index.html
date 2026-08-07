@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="app-build" content="20260806-1119">
+<meta name="app-build" content="20260807-1710">
 <meta name="theme-color" content="#0B1F17">
 <title>RemindMe — நினைவூட்டல்</title>
 <link rel="manifest" href="manifest.json">
@@ -52,6 +52,9 @@ a{color:var(--green);}
   justify-content:center;font-size:17px;flex:0 0 auto;}
 
 /* ---------- ticker ---------- */
+.netbar{display:none;background:#3A2E12;color:var(--amber);border-bottom:1px solid var(--line);
+  text-align:center;padding:7px 10px;font-size:13px;}
+.netbar.on{display:block;}
 .ticker{background:var(--tick-bg,var(--card2));border-bottom:1px solid var(--line);
   overflow:hidden;white-space:nowrap;padding:7px 0;font-size:13px;color:var(--tick-fg,var(--amber));display:none;}
 .ticker.on{display:block;}
@@ -307,6 +310,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xml
     <button class="icon-btn" id="btnSettings">⚙️</button>
   </div>
 </div>
+<div class="netbar" id="netBar">இணைப்பு இல்ல, காத்திருக்கு…</div>
 <div class="ticker" id="ticker"><span class="notr" id="tickerTxt"></span></div>
 
 <div class="wrap" id="app"></div>
@@ -366,6 +370,35 @@ const ROOT = DEMO_ID ? ('demoInstances/' + DEMO_ID) : 'remindme';
 firebase.initializeApp(CONFIG.firebase);
 const db = firebase.database();
 const R  = p => db.ref(ROOT + (p ? '/' + p : ''));
+
+/* இணைப்பு கவனிப்பு. service worker cache-ல page-ஐ கொடுத்துடும், அதனால
+   ஆப் திறக்கும் — ஆனா Firebase தொட முடியாம நிரந்தரமா காத்திருக்கும்.
+   ஆறு வினாடி கழிச்சும் இணைப்பு இல்லைனா அமைதியா சொல்லிடணும். */
+let NET_OK = true, _netT = 0;
+db.ref('.info/connected').on('value', s => {
+  const up = s.val() === true;
+  clearTimeout(_netT);
+  if(up){
+    NET_OK = true;
+    netNote(false);
+  }else{
+    _netT = setTimeout(() => { NET_OK = false; netNote(true); }, 6000);
+  }
+});
+function netNote(show){
+  const m = $('pinMsg');
+  if(m && $('pinScreen') && $('pinScreen').style.display !== 'none'){
+    if(show){
+      m.style.color = 'var(--amber)';
+      m.textContent = tr('இணைப்பு இல்ல, காத்திருக்கு…');
+    }else if(m.style.color === 'var(--amber)'){
+      m.style.color = 'var(--muted)';
+      m.textContent = '';
+    }
+  }
+  const b = $('netBar');
+  if(b) b.classList.toggle('on', !!show);
+}
 
 /* ---------------- auth (anonymous) ----------------
    App-ல login இல்ல. ஆனா Firebase rules-க்கு ஒரு identity வேணும்.
@@ -525,6 +558,7 @@ function bi(ta, en){
 }
 
 const DICT = {
+  'இணைப்பு இல்ல, காத்திருக்கு…':'No connection, waiting…',
   /* கட்டின பதிவு நீக்கம் */
   'கட்டின தேதி':'Paid on',
   'கட்ட வேண்டியது:':'Due:',
